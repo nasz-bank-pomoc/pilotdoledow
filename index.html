@@ -123,11 +123,29 @@
     }
 }
 
-        async function sendCMD(hex) {
-            if (!ledChar) return;
-            const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+async function sendCMD(hex) {
+    if (!ledChar) {
+        alert("Najpierw kliknij POŁĄCZ!");
+        return;
+    }
+    
+    try {
+        const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+        
+        // Próbujemy najpierw najszybszą metodą
+        try {
             await ledChar.writeValueWithoutResponse(bytes);
+            console.log("Wysłano (bez odpowiedzi): " + hex);
+        } catch (e) {
+            // Jeśli nie zadziała, próbujemy standardowej metody z potwierdzeniem
+            await ledChar.writeValueWithResponse(bytes);
+            console.log("Wysłano (z odpowiedzią): " + hex);
         }
+    } catch (err) {
+        console.error("Błąd wysyłania: ", err);
+        alert("Błąd połączenia. Spróbuj połączyć jeszcze raz.");
+    }
+}
 
         function changeColor(hex) {
             let r = hex.substring(1,3), g = hex.substring(3,5), b = hex.substring(5,7);
