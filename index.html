@@ -3,86 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LED Pro Fix</title>
+    <title>LED Ultra Controller</title>
     <style>
-        body { background: #121212; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
-        .card { background: #1e1e24; border-radius: 15px; padding: 20px; margin-bottom: 15px; }
-        button { width: 100%; padding: 15px; margin: 5px 0; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
-        .on { background: #27ae60; color: white; }
-        .off { background: #c0392b; color: white; }
-        #log { font-size: 10px; color: #888; text-align: left; height: 100px; overflow-y: auto; background: #000; padding: 10px; margin-top: 10px; }
+        :root { --bg: #0f0f12; --card: #1e1e24; --accent: #7b2ffb; --text: #ffffff; }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding-bottom: 80px; text-align: center; }
+        
+        /* Menu dolne */
+        .navbar { position: fixed; bottom: 0; width: 100%; background: var(--card); display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #333; }
+        .nav-item { color: #888; font-size: 12px; cursor: pointer; display: flex; flex-direction: column; }
+        .nav-item.active { color: var(--accent); font-weight: bold; }
+
+        /* Zakładki */
+        .page { display: none; padding: 20px; animation: fadeIn 0.3s; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        button { background: var(--accent); color: white; border: none; padding: 15px; border-radius: 12px; width: 100%; font-weight: bold; margin: 10px 0; cursor: pointer; }
+        #log { background: #000; color: #0f0; font-family: monospace; font-size: 10px; height: 80px; overflow-y: auto; text-align: left; padding: 10px; border-radius: 10px; }
+        input[type="color"] { width: 100%; height: 50px; border-radius: 10px; border: none; background: none; cursor: pointer; }
     </style>
 </head>
 <body>
-    <h2>LED Controller v2.0</h2>
-    <div class="card">
-        <button onclick="initBT()" style="background: #7b2ffb; color: white;">1. POŁĄCZ Z LED</button>
-        <p id="status">Status: Rozłączony</p>
+
+    <div id="home" class="page active">
+        <h2>Mój Pilot LED</h2>
+        <div class="card">
+            <button onclick="initBT()" style="background: #27ae60;">POŁĄCZ Z URZĄDZENIEM</button>
+            <p id="status">Status: Rozłączony</p>
+        </div>
+
+        <div class="card">
+            <h3>Główne sterowanie</h3>
+            <button style="background: #2ecc71;" onclick="sendAll('ON')">WŁĄCZ (Wyślij serię)</button>
+            <button style="background: #e74c3c;" onclick="sendAll('OFF')">WYŁĄCZ (Wyślij serię)</button>
+        </div>
+
+        <div class="card">
+            <h3>Wybierz Kolor</h3>
+            <input type="color" oninput="changeColor(this.value)">
+        </div>
+
+        <div id="log">Czekam na połączenie...</div>
     </div>
 
-    <div class="card">
-        <button class="on" onclick="sendCMD('fbeb0101')">WŁĄCZ</button>
-        <button class="off" onclick="sendCMD('fbeb0100')">WYŁĄCZ</button>
+    <div id="anim" class="page">
+        <h2>Animacje i Efekty</h2>
+        <div class="card">
+            <p>Wybierz efekt (wysyła serię kodów):</p>
+            <button onclick="sendAll('RAINBOW')">Tęcza / Przepływ</button>
+            <button onclick="sendAll('FLASH')">Stroboskop</button>
+        </div>
     </div>
 
-    <div id="log">Logi systemowe:</div>
+    <div id="timer" class="page">
+        <h2>Budzik / Harmonogram</h2>
+        <div class="card">
+            <p>Wkrótce: Automatyczne włączanie o 6:56</p>
+            <input type="time" id="alarmTime" value="06:56">
+            <button disabled>Ustaw Budzik (Wymaga aktywnej karty)</button>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-item active" onclick="showPage('home')">🏠<span>Pilot</span></div>
+        <div class="nav-item" onclick="showPage('anim')">✨<span>Efekty</span></div>
+        <div class="nav-item" onclick="showPage('timer')">⏰<span>Czas</span></div>
+    </nav>
 
     <script>
         let ledChar = null;
 
+        // BAZA WSZYSTKICH KODÓW (HiLighting, ELK, FB Protocol)
+        const MASTER_CODES = {
+            ON: ['fbeb0101', '7e0404010005ff00', '7e00040100000000', '5501010100', 'aa01010100'],
+            OFF: ['fbeb0100', '7e0404000005ff00', '7e00040000000000', '5501010000', 'aa01010000'],
+            RAINBOW: ['fbeb0301', '7e05030100000000', '55020101']
+        };
+
+        function showPage(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        }
+
         function updateLog(msg) {
-            const logDiv = document.getElementById('log');
-            logDiv.innerHTML += `> ${msg}<br>`;
-            logDiv.scrollTop = logDiv.scrollHeight;
+            const l = document.getElementById('log');
+            l.innerHTML += `> ${msg}<br>`;
+            l.scrollTop = l.scrollHeight;
         }
 
         async function initBT() {
             try {
-                updateLog("Szukanie urządzenia...");
                 const device = await navigator.bluetooth.requestDevice({
                     acceptAllDevices: true,
                     optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e']
                 });
-
-                updateLog("Łączenie z GATT...");
                 const server = await device.gatt.connect();
-                
-                updateLog("Pobieranie serwisu...");
                 const service = await server.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e');
-                
-                updateLog("Pobieranie charakterystyki...");
                 ledChar = await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');
-                
                 document.getElementById('status').innerText = "✅ Połączono: " + device.name;
-                updateLog("Gotowy do pracy!");
+                updateLog("Połączono z " + device.name);
+            } catch (e) { updateLog("Błąd: " + e.message); }
+        }
 
-                // Opcjonalny handshake dla HiLighting
-                await sendCMD('fbeb0000'); 
-            } catch (e) {
-                updateLog("BŁĄD: " + e.message);
-                console.error(e);
+        async function sendAll(type) {
+            if (!ledChar) { alert("Najpierw połącz!"); return; }
+            updateLog(`Wysyłam serię ${type}...`);
+            for (let hex of MASTER_CODES[type]) {
+                await writeRaw(hex);
+                await new Promise(r => setTimeout(r, 100)); // Mała przerwa między kodami
             }
         }
 
-        async function sendCMD(hex) {
-            if (!ledChar) {
-                updateLog("Błąd: Brak połączenia!");
-                return;
-            }
+        async function changeColor(hex) {
+            if (!ledChar) return;
+            let r = hex.substring(1,3), g = hex.substring(3,5), b = hex.substring(5,7);
+            // Wysyłamy dwa najpopularniejsze formaty koloru na raz
+            await writeRaw(`fbeb05${r}${g}${b}`);
+            await writeRaw(`7e070503${r}${g}${b}00ef`);
+        }
+
+        async function writeRaw(hex) {
             try {
                 const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
-                
-                // Próba zapisu bez odpowiedzi (najszybsza)
                 try {
                     await ledChar.writeValueWithoutResponse(bytes);
-                    updateLog("Wysłano: " + hex);
-                } catch (inner) {
-                    // Próba zapisu z odpowiedzią (jeśli telefon blokuje pierwszy tryb)
+                } catch (e) {
                     await ledChar.writeValueWithResponse(bytes);
-                    updateLog("Wysłano (WithResponse): " + hex);
                 }
-            } catch (err) {
-                updateLog("Błąd wysyłania: " + err.message);
+                updateLog("Sukces: " + hex);
+            } catch (e) {
+                updateLog("Pominięto: " + hex);
             }
         }
     </script>
