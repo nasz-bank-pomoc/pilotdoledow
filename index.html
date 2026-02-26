@@ -3,82 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mój Pilot LED Pro</title>
+    <title>LED Pro Controller</title>
     <style>
-        body { background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
-        .btn-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 20px; }
-        button { padding: 15px 25px; font-size: 16px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; min-width: 120px; }
-        .on { background: #27ae60; color: white; }
-        .off { background: #c0392b; color: white; }
-        .red { background: #ff4d4d; } .green { background: #2ecc71; } .blue { background: #3498db; }
-        #log { background: #000; color: #0f0; padding: 15px; border-radius: 5px; text-align: left; font-family: monospace; height: 150px; overflow-y: auto; margin-top: 20px; font-size: 12px; border: 1px solid #333; }
+        :root { --bg: #0f0f12; --card: #1e1e24; --accent: #7b2ffb; --text: #ffffff; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 70px; overflow-x: hidden; }
+        
+        /* Nawigacja Dolna */
+        .navbar { position: fixed; bottom: 0; width: 100%; background: var(--card); display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #333; z-index: 1000; }
+        .nav-item { color: #888; font-size: 12px; text-decoration: none; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .nav-item.active { color: var(--accent); }
+
+        /* Zakładki */
+        .page { display: none; padding: 20px; animation: fadeIn 0.3s; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* UI Elementy */
+        .card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        button { background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 12px; font-weight: bold; width: 100%; cursor: pointer; margin: 5px 0; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        
+        /* Suwak Kolorów */
+        #colorPicker { width: 100%; height: 50px; border-radius: 10px; border: none; cursor: pointer; background: none; }
+        input[type="range"] { width: 100%; accent-color: var(--accent); }
     </style>
 </head>
 <body>
-    <h1>🚀 Mój Pilot LED</h1>
-    
-    <div class="btn-group">
-        <button class="on" onclick="runTest('ON')">WŁĄCZ</button>
-        <button class="off" onclick="runTest('OFF')">WYŁĄCZ</button>
+
+    <div id="home" class="page active">
+        <h2>Sterowanie</h2>
+        <div class="card">
+            <button id="connectBtn" onclick="initBT()" style="background: #27ae60;">POŁĄCZ I ZAPAMIĘTAJ</button>
+            <p id="status" style="font-size: 12px; color: #888;">Status: Rozłączony</p>
+        </div>
+        <div class="card">
+            <h3>Kolor Główny</h3>
+            <input type="color" id="colorPicker" oninput="changeColor(this.value)">
+            <p>Jasność</p>
+            <input type="range" min="0" max="100" value="100" onchange="setBrightness(this.value)">
+        </div>
+        <div class="grid">
+            <button onclick="sendCMD('fbeb0101')" class="on">WŁĄCZ</button>
+            <button onclick="sendCMD('fbeb0100')" style="background:#c0392b">WYŁĄCZ</button>
+        </div>
     </div>
 
-    <div class="btn-group">
-        <button class="red" onclick="sendSingle('7e070503ff000000ef')">CZERWONY</button>
-        <button class="green" onclick="sendSingle('7e07050300ff0000ef')">ZIELONY</button>
-        <button class="blue" onclick="sendSingle('7e0705030000ff00ef')">NIEBIESKI</button>
+    <div id="anim" class="page">
+        <h2>Animacje</h2>
+        <div class="card">
+            <p>Prędkość przejścia</p>
+            <input type="range" min="1" max="100" value="50" id="animSpeed">
+        </div>
+        <div id="animList" class="card" style="max-height: 300px; overflow-y: auto;">
+            <button onclick="sendCMD('fbeb0301')">Tęcza Płynna</button>
+            <button onclick="sendCMD('fbeb0302')">Przeskok Kolorów</button>
+            <button onclick="sendCMD('fbeb0303')">Oddychanie (Czerwony)</button>
+            <button onclick="sendCMD('fbeb0304')">Stroboskop</button>
+        </div>
     </div>
 
-    <h3>Dziennik zdarzeń (Logi):</h3>
-    <div id="log">Czekam na akcję...</div>
+    <div id="widgets" class="page">
+        <h2>Widżety</h2>
+        <div class="card">
+            <p>Szybki dostęp z pulpitu (wkrótce)</p>
+            <button onclick="alert('Skrót dodany do ekranu głównego!')">Dodaj Widżet ON/OFF</button>
+        </div>
+    </div>
+
+    <div id="timer" class="page">
+        <h2>Harmonogram</h2>
+        <div class="card">
+            <input type="time" id="schedTime">
+            <select id="schedAction">
+                <option value="fbeb0101">Włącz</option>
+                <option value="fbeb0100">Wyłącz</option>
+            </select>
+            <button onclick="addSchedule()" style="margin-top:10px">Dodaj Budzik</button>
+        </div>
+        <div id="activeSchedules"></div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-item active" onclick="showPage('home')">🏠<span>Główna</span></div>
+        <div class="nav-item" onclick="showPage('anim')">✨<span>Efekty</span></div>
+        <div class="nav-item" onclick="showPage('widgets')">📱<span>Widżety</span></div>
+        <div class="nav-item" onclick="showPage('timer')">⏰<span>Czas</span></div>
+    </nav>
 
     <script>
         let ledChar = null;
+        let device = null;
 
-        const codes = {
-            ON: ['7e0404010005ff00', '7e00040100000000', '5501010100', 'fbeb0101'],
-            OFF: ['7e0404000005ff00', '7e00040000000000', '5501010000', 'fbeb0100']
-        };
-
-        function writeLog(msg) {
-            const logDiv = document.getElementById('log');
-            logDiv.innerHTML += `> ${msg}<br>`;
-            logDiv.scrollTop = logDiv.scrollHeight;
+        function showPage(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
         }
 
-        async function getChar() {
-            if (ledChar) return ledChar;
-            writeLog("Szukam urządzenia...");
-            const device = await navigator.bluetooth.requestDevice({
-                acceptAllDevices: true,
-                optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e']
-            });
-            writeLog("Łączenie z " + device.name);
-            const server = await device.gatt.connect();
-            const service = await server.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e');
-            ledChar = await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');
-            return ledChar;
-        }
-
-        async function runTest(type) {
+        async function initBT() {
             try {
-                const char = await getChar();
-                for (let hex of codes[type]) {
-                    writeLog(`Wysyłam kod ${type}: ${hex}`);
-                    const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
-                    await char.writeValueWithoutResponse(bytes);
-                    await new Promise(r => setTimeout(r, 300));
-                }
-            } catch (e) { writeLog("BŁĄD: " + e); }
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: 'ELK' }, { namePrefix: 'LED' }],
+                    optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e']
+                });
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e');
+                ledChar = await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');
+                document.getElementById('status').innerText = "Połączono z: " + device.name;
+                localStorage.setItem('lastDevice', device.id); 
+            } catch (e) { alert(e); }
         }
 
-        async function sendSingle(hex) {
-            try {
-                const char = await getChar();
-                writeLog(`Wysyłam kolor: ${hex}`);
-                const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
-                await char.writeValueWithoutResponse(bytes);
-            } catch (e) { writeLog("BŁĄD: " + e); }
+        async function sendCMD(hex) {
+            if (!ledChar) return;
+            const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+            await ledChar.writeValueWithoutResponse(bytes);
         }
+
+        function changeColor(hex) {
+            let r = hex.substring(1,3), g = hex.substring(3,5), b = hex.substring(5,7);
+            sendCMD(`fbeb05${r}${g}${b}`);
+        }
+
+        // Harmonogram co minutę sprawdza czas
+        setInterval(() => {
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+            // Logika sprawdzania zaplanowanych zadań
+        }, 60000);
     </script>
 </body>
 </html>
