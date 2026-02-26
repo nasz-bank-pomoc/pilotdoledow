@@ -6,227 +6,167 @@
 <meta name="theme-color" content="#0a0a0f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="LED Control">
-<title>LED BLE Controller</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<meta name="apple-mobile-web-app-title" content="LED PRO">
+<title>LED PRO</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #07070d;
-    --bg2: #0e0e1a;
-    --bg3: #14142a;
-    --glass: rgba(255,255,255,0.04);
-    --border: rgba(255,255,255,0.08);
-    --accent: #ff3cac;
-    --accent2: #784ba0;
-    --accent3: #2b86c5;
-    --text: #e8e8ff;
-    --muted: rgba(232,232,255,0.45);
-    --success: #00ffb3;
-    --warn: #ffb300;
-    --radius: 16px;
-    --font: 'Rajdhani', sans-serif;
-    --mono: 'Share Tech Mono', monospace;
-  }
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body { height:100%; background:var(--bg); color:var(--text); font-family:var(--font); overflow:hidden; }
+:root {
+  --bg:#07070d; --bg2:#0e0e1a; --bg3:#14142a;
+  --glass:rgba(255,255,255,0.04); --border:rgba(255,255,255,0.08);
+  --accent:#ff3cac; --accent2:#784ba0; --accent3:#2b86c5;
+  --text:#e8e8ff; --muted:rgba(232,232,255,0.45);
+  --ok:#00ffb3; --warn:#ffb300; --err:#ff3c64;
+  --r:16px; --f:'Rajdhani',sans-serif; --m:'Share Tech Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f);overflow:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;
+  background:radial-gradient(ellipse at 20% 20%,rgba(255,60,172,.08) 0%,transparent 60%),
+             radial-gradient(ellipse at 80% 80%,rgba(43,134,197,.08) 0%,transparent 60%);
+  animation:bgp 8s ease-in-out infinite alternate}
+@keyframes bgp{0%{opacity:.6}100%{opacity:1}}
+#app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;max-width:480px;margin:0 auto}
 
-  /* Animated background */
-  body::before {
-    content:''; position:fixed; inset:0; z-index:0;
-    background: radial-gradient(ellipse at 20% 20%, rgba(255,60,172,0.08) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 80%, rgba(43,134,197,0.08) 0%, transparent 60%),
-                radial-gradient(ellipse at 50% 50%, rgba(120,75,160,0.05) 0%, transparent 70%);
-    animation: bgpulse 8s ease-in-out infinite alternate;
-  }
-  @keyframes bgpulse { 0%{opacity:.6} 100%{opacity:1} }
+#installBar{display:none;align-items:center;gap:10px;padding:8px 16px;
+  background:linear-gradient(90deg,rgba(120,75,160,.2),rgba(43,134,197,.2));
+  border-bottom:1px solid var(--border);font-size:.8rem}
+#installBar.show{display:flex}
 
-  #app { position:relative; z-index:1; height:100%; display:flex; flex-direction:column; max-width:480px; margin:0 auto; }
+header{padding:12px 16px 10px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);backdrop-filter:blur(20px);background:rgba(7,7,13,.9)}
+.logo{font-size:1.4rem;font-weight:700;letter-spacing:3px;
+  background:linear-gradient(90deg,var(--accent),var(--accent3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+#statusBadge{font-family:var(--m);font-size:.62rem;padding:4px 10px;border-radius:20px;
+  background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);transition:all .4s;white-space:nowrap}
+#statusBadge.conn{color:var(--ok);border-color:rgba(0,255,179,.3);background:rgba(0,255,179,.08)}
+#statusBadge.cing{color:var(--warn);border-color:rgba(255,179,0,.3);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
 
-  /* Header */
-  header {
-    padding:14px 20px 10px;
-    display:flex; align-items:center; justify-content:space-between;
-    border-bottom:1px solid var(--border);
-    backdrop-filter:blur(20px);
-    background:rgba(7,7,13,0.8);
-  }
-  .logo { font-size:1.5rem; font-weight:700; letter-spacing:3px; text-transform:uppercase;
-    background:linear-gradient(90deg,var(--accent),var(--accent3));
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-  #statusBadge {
-    font-family:var(--mono); font-size:0.65rem; padding:4px 10px; border-radius:20px;
-    background:rgba(255,255,255,0.06); border:1px solid var(--border);
-    color:var(--muted); transition:all .4s; white-space:nowrap;
-  }
-  #statusBadge.connected { color:var(--success); border-color:rgba(0,255,179,0.3); background:rgba(0,255,179,0.08); }
-  #statusBadge.connecting { color:var(--warn); border-color:rgba(255,179,0,0.3); animation:blink 1s infinite; }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+#powerBar{display:flex;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border)}
+.pb{flex:1;padding:11px 8px;border:none;border-radius:12px;cursor:pointer;
+  font-family:var(--f);font-size:.95rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  transition:transform .1s,filter .1s;position:relative;overflow:hidden}
+.pb:active{transform:scale(.96);filter:brightness(.85)}
+#btnOn{background:linear-gradient(135deg,#00ffb3,#00c97a);color:#002a18}
+#btnOff{background:rgba(255,60,100,.15);color:#ff3c64;border:1px solid rgba(255,60,100,.3)}
+#btnBLE{background:linear-gradient(135deg,var(--accent2),var(--accent3));color:#fff;flex:0 0 auto;padding:11px 16px}
 
-  /* Quick Power Bar */
-  #powerBar {
-    display:flex; gap:10px; padding:12px 16px;
-    border-bottom:1px solid var(--border);
-  }
-  .pwr-btn {
-    flex:1; padding:12px; border:none; border-radius:12px; cursor:pointer;
-    font-family:var(--font); font-size:1rem; font-weight:700; letter-spacing:2px;
-    text-transform:uppercase; transition:all .2s; position:relative; overflow:hidden;
-  }
-  .pwr-btn::after { content:''; position:absolute; inset:0; background:rgba(255,255,255,0); transition:.2s; }
-  .pwr-btn:active::after { background:rgba(255,255,255,0.1); }
-  #btnOn { background:linear-gradient(135deg,#00ffb3,#00c97a); color:#002a18; }
-  #btnOff { background:rgba(255,60,100,0.15); color:#ff3c64; border:1px solid rgba(255,60,100,0.3); }
-  #btnConnect {
-    background:linear-gradient(135deg,var(--accent2),var(--accent3));
-    color:white; flex:0 0 auto; padding:12px 18px;
-  }
+nav{display:flex;border-bottom:1px solid var(--border);background:rgba(7,7,13,.7);backdrop-filter:blur(10px)}
+.tb{flex:1;padding:9px 2px;border:none;background:none;color:var(--muted);
+  font-family:var(--f);font-size:.8rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;
+  cursor:pointer;transition:color .2s;position:relative}
+.tb.on{color:var(--text)}
+.tb.on::after{content:'';position:absolute;bottom:0;left:15%;right:15%;height:2px;
+  background:linear-gradient(90deg,var(--accent),var(--accent3));border-radius:2px}
 
-  /* Tabs */
-  nav {
-    display:flex; border-bottom:1px solid var(--border);
-    background:rgba(7,7,13,0.6); backdrop-filter:blur(10px);
-  }
-  .tab-btn {
-    flex:1; padding:10px 4px; border:none; background:none; color:var(--muted);
-    font-family:var(--font); font-size:.85rem; font-weight:600; letter-spacing:1.5px;
-    text-transform:uppercase; cursor:pointer; transition:all .25s; position:relative;
-  }
-  .tab-btn.active { color:var(--text); }
-  .tab-btn.active::after {
-    content:''; position:absolute; bottom:0; left:20%; right:20%; height:2px;
-    background:linear-gradient(90deg,var(--accent),var(--accent3)); border-radius:2px;
-  }
+#content{flex:1;overflow-y:auto;overflow-x:hidden}
+#content::-webkit-scrollbar{width:3px}
+#content::-webkit-scrollbar-thumb{background:var(--accent2);border-radius:2px}
+.panel{display:none;padding:14px;animation:fi .25s ease}
+.panel.on{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
-  /* Content */
-  #content { flex:1; overflow-y:auto; overflow-x:hidden; scroll-behavior:smooth; }
-  #content::-webkit-scrollbar { width:3px; }
-  #content::-webkit-scrollbar-track { background:transparent; }
-  #content::-webkit-scrollbar-thumb { background:var(--accent2); border-radius:2px; }
+.card{background:var(--glass);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px;margin-bottom:12px;backdrop-filter:blur(10px)}
+.ct{font-size:.65rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);
+  margin-bottom:10px;font-family:var(--m)}
 
-  .tab-panel { display:none; padding:16px; animation:fadeIn .3s ease; }
-  .tab-panel.active { display:block; }
-  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+/* Color wheel */
+#wheelWrap{position:relative;width:fit-content;margin:0 auto;touch-action:none;user-select:none}
+#colorCanvas{display:block;border-radius:50%;box-shadow:0 0 40px rgba(255,60,172,.25);cursor:none}
+#wheelCursor{
+  position:absolute;width:24px;height:24px;border-radius:50%;
+  border:3px solid #fff;
+  box-shadow:0 0 0 2px rgba(0,0,0,.6),0 0 12px rgba(255,255,255,.4);
+  pointer-events:none;transform:translate(-50%,-50%);
+  display:none;transition:background .06s
+}
+#colorPreviewRow{display:flex;align-items:center;gap:12px;margin-top:12px}
+#colorSwatch{width:50px;height:50px;border-radius:50%;border:3px solid var(--border);flex-shrink:0;
+  box-shadow:0 0 16px rgba(0,0,0,.5);transition:background .08s}
+#colorHex{font-family:var(--m);font-size:1.1rem;color:var(--text);letter-spacing:2px}
+#colorHexSub{font-size:.7rem;color:var(--muted);font-family:var(--m);margin-top:2px}
 
-  /* Glass card */
-  .card {
-    background:var(--glass); border:1px solid var(--border); border-radius:var(--radius);
-    padding:16px; margin-bottom:14px; backdrop-filter:blur(10px);
-  }
-  .card-title { font-size:.7rem; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; font-family:var(--mono); }
+.slw{margin-top:10px}
+.sll{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-bottom:5px;font-family:var(--m)}
+input[type=range]{width:100%;-webkit-appearance:none;height:5px;border-radius:3px;
+  background:linear-gradient(90deg,var(--bg3),var(--accent));outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;
+  border-radius:50%;background:#fff;box-shadow:0 0 8px rgba(255,60,172,.7);cursor:pointer}
 
-  /* Color Wheel */
-  #colorCanvas { display:block; margin:0 auto; cursor:crosshair; border-radius:50%;
-    box-shadow:0 0 40px rgba(255,60,172,0.2); touch-action:none; }
-  #colorPreview {
-    width:60px; height:60px; border-radius:50%; margin:12px auto 0;
-    border:3px solid var(--border); box-shadow:0 0 20px currentColor;
-    transition:background .1s; position:relative;
-  }
-  #colorPreview::after { content:''; position:absolute; inset:4px; border-radius:50%; background:rgba(0,0,0,0.3); }
+.rgbrow{display:flex;gap:8px;margin-top:10px}
+.rgbwrap{flex:1}
+.rgbwrap label{font-size:.6rem;letter-spacing:2px;color:var(--muted);font-family:var(--m);display:block;margin-bottom:3px}
+.rgbwrap input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-family:var(--m);font-size:.95rem;padding:7px;text-align:center;outline:none}
+.rgbwrap input:focus{border-color:var(--accent)}
 
-  /* Brightness slider */
-  .slider-wrap { margin-top:10px; }
-  .slider-label { display:flex; justify-content:space-between; font-size:.75rem; color:var(--muted); margin-bottom:6px; font-family:var(--mono); }
-  input[type=range] {
-    width:100%; -webkit-appearance:none; height:6px; border-radius:3px;
-    background:linear-gradient(90deg,var(--bg3),var(--accent)); outline:none; cursor:pointer;
-  }
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance:none; width:20px; height:20px; border-radius:50%;
-    background:white; box-shadow:0 0 10px rgba(255,60,172,0.6); cursor:pointer;
-  }
+.agrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+@media(min-width:360px){.agrid{grid-template-columns:repeat(5,1fr)}}
+.abtn{aspect-ratio:1;border:1px solid var(--border);border-radius:10px;background:var(--glass);
+  color:var(--text);font-family:var(--m);font-size:.55rem;cursor:pointer;transition:all .15s;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  text-align:center;line-height:1.2;padding:3px}
+.abtn:hover{background:rgba(120,75,160,.25);border-color:var(--accent2)}
+.abtn.on{background:rgba(120,75,160,.4);border-color:var(--accent);color:#fff;
+  box-shadow:0 0 8px rgba(255,60,172,.3)}
+.abtn:active{transform:scale(.93)}
+.abtn .ico{font-size:.95rem}
 
-  /* RGB Manual */
-  .rgb-row { display:flex; gap:8px; margin-top:10px; }
-  .rgb-input-wrap { flex:1; }
-  .rgb-input-wrap label { font-size:.65rem; letter-spacing:2px; color:var(--muted); font-family:var(--mono); display:block; margin-bottom:4px; }
-  .rgb-input-wrap input[type=number] {
-    width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:8px;
-    color:var(--text); font-family:var(--mono); font-size:1rem; padding:8px;
-    text-align:center; outline:none;
-  }
-  .rgb-input-wrap input:focus { border-color:var(--accent); }
+.si{display:flex;align-items:center;gap:8px;padding:10px 12px;
+  background:var(--bg3);border-radius:10px;margin-bottom:8px;border:1px solid var(--border)}
+.si input[type=time]{background:none;border:none;color:var(--text);font-family:var(--m);
+  font-size:1.05rem;outline:none;flex:1}
+.si select{background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:8px;
+  padding:5px 4px;font-family:var(--m);font-size:.7rem;outline:none;max-width:110px}
+.tog{width:36px;height:20px;border-radius:10px;border:none;cursor:pointer;
+  position:relative;flex-shrink:0;background:var(--bg2);transition:background .3s}
+.tog.on{background:linear-gradient(135deg,var(--ok),#00c97a)}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;
+  border-radius:50%;background:#fff;transition:left .2s}
+.tog.on::after{left:19px}
+.bsm{padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--glass);
+  color:var(--text);font-family:var(--f);font-size:.78rem;cursor:pointer;flex-shrink:0}
+.bsm:hover{background:rgba(120,75,160,.2)}
+.bsm.d{color:var(--err);border-color:rgba(255,60,100,.3)}
 
-  /* Animations grid */
-  .anim-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
-  .anim-btn {
-    aspect-ratio:1; border:1px solid var(--border); border-radius:10px;
-    background:var(--glass); color:var(--text); font-family:var(--mono); font-size:.6rem;
-    cursor:pointer; transition:all .2s; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:2px; text-align:center;
-    line-height:1.2; padding:4px;
-  }
-  .anim-btn:hover, .anim-btn.active { background:rgba(120,75,160,0.3); border-color:var(--accent2); color:white; }
-  .anim-btn span.ico { font-size:1.1rem; }
-  .anim-btn:active { transform:scale(.95); }
+.sr{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0;border-bottom:1px solid var(--border)}
+.sr:last-child{border-bottom:none}
+.sl{font-size:.88rem;color:var(--text)}
+.ss{font-size:.68rem;color:var(--muted);margin-top:2px;font-family:var(--m)}
+input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);cursor:pointer}
 
-  /* Schedule */
-  .schedule-item {
-    display:flex; align-items:center; gap:10px; padding:10px 12px;
-    background:var(--bg3); border-radius:10px; margin-bottom:8px; border:1px solid var(--border);
-  }
-  .schedule-item input[type=time] {
-    background:none; border:none; color:var(--text); font-family:var(--mono); font-size:1.1rem; outline:none; flex:1;
-  }
-  .sched-toggle { width:36px; height:20px; border-radius:10px; border:none; cursor:pointer; position:relative; flex-shrink:0; background:var(--bg2); }
-  .sched-toggle.on { background:linear-gradient(135deg,var(--success),#00c97a); }
-  .sched-toggle::after { content:''; position:absolute; top:3px; left:3px; width:14px; height:14px; border-radius:50%; background:white; transition:.2s; }
-  .sched-toggle.on::after { left:19px; }
-  .btn-sm {
-    padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:var(--glass);
-    color:var(--text); font-family:var(--font); font-size:.8rem; cursor:pointer; letter-spacing:1px;
-  }
-  .btn-sm:hover { background:rgba(120,75,160,0.2); }
-  .btn-sm.danger { color:#ff3c64; border-color:rgba(255,60,100,0.3); }
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:rgba(14,14,26,.97);border:1px solid var(--border);border-radius:30px;
+  padding:8px 20px;font-family:var(--m);font-size:.78rem;color:var(--text);
+  opacity:0;transition:all .25s;z-index:9999;pointer-events:none;white-space:nowrap;
+  backdrop-filter:blur(20px)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-  /* Settings */
-  .setting-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); }
-  .setting-row:last-child { border-bottom:none; }
-  .setting-label { font-size:.9rem; color:var(--text); }
-  .setting-sub { font-size:.7rem; color:var(--muted); margin-top:2px; font-family:var(--mono); }
+#logBox{font-family:var(--m);font-size:.62rem;color:var(--muted);background:var(--bg3);
+  border-radius:8px;padding:8px;height:110px;overflow-y:auto;line-height:1.7;
+  border:1px solid var(--border)}
+.lok{color:var(--ok)}.lerr{color:var(--err)}.linf{color:var(--accent3)}
 
-  /* Toast */
-  #toast {
-    position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
-    background:rgba(14,14,26,0.95); border:1px solid var(--border); border-radius:30px;
-    padding:8px 20px; font-family:var(--mono); font-size:.8rem; color:var(--text);
-    opacity:0; transition:all .3s; z-index:999; pointer-events:none; white-space:nowrap;
-    backdrop-filter:blur(20px);
-  }
-  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.notice{background:rgba(255,179,0,.07);border:1px solid rgba(255,179,0,.2);
+  border-radius:10px;padding:10px 12px;font-size:.78rem;color:var(--muted);line-height:1.6;margin-bottom:10px}
+.notice strong{color:var(--warn)}
 
-  /* Log */
-  #logBox {
-    font-family:var(--mono); font-size:.65rem; color:var(--muted);
-    background:var(--bg3); border-radius:8px; padding:10px; height:100px;
-    overflow-y:auto; line-height:1.6; border:1px solid var(--border);
-  }
-  .log-ok { color:var(--success); }
-  .log-err { color:#ff3c64; }
-  .log-info { color:var(--accent3); }
-
-  /* Responsive tweaks */
-  @media(min-width:400px) { .anim-grid { grid-template-columns:repeat(5,1fr); } }
-
-  /* PWA install bar */
-  #installBar {
-    display:none; align-items:center; gap:10px; padding:8px 16px;
-    background:linear-gradient(90deg,rgba(120,75,160,0.2),rgba(43,134,197,0.2));
-    border-bottom:1px solid var(--border); font-size:.8rem;
-  }
-  #installBar.show { display:flex; }
-  #installBar button { margin-left:auto; flex-shrink:0; }
+.bigbtn{width:100%;padding:13px;border:none;border-radius:12px;cursor:pointer;
+  font-family:var(--f);font-size:1rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  background:linear-gradient(135deg,var(--accent2),var(--accent3));color:#fff;
+  transition:transform .1s,filter .1s}
+.bigbtn:active{transform:scale(.97);filter:brightness(.85)}
 </style>
 </head>
 <body>
 <div id="app">
-  <!-- Install PWA bar -->
   <div id="installBar">
-    <span>📲</span>
-    <span style="flex:1">Dodaj do ekranu głównego</span>
-    <button class="btn-sm" id="installBtn">Instaluj</button>
-    <button class="btn-sm" id="installDismiss">✕</button>
+    <span>📲</span><span style="flex:1">Dodaj do ekranu głównego</span>
+    <button class="bsm" id="iBtnYes">Instaluj</button>
+    <button class="bsm" id="iBtnNo">✕</button>
   </div>
 
   <header>
@@ -235,113 +175,100 @@
   </header>
 
   <div id="powerBar">
-    <button class="pwr-btn" id="btnOn" onclick="sendOn()">ON</button>
-    <button class="pwr-btn" id="btnOff" onclick="sendOff()">OFF</button>
-    <button class="pwr-btn" id="btnConnect" onclick="connectBLE()">🔵 BLE</button>
+    <button class="pb" id="btnOn"  onclick="sendOn()">ON</button>
+    <button class="pb" id="btnOff" onclick="sendOff()">OFF</button>
+    <button class="pb" id="btnBLE" onclick="connectBLE()">🔵 BLE</button>
   </div>
 
   <nav>
-    <button class="tab-btn active" data-tab="control">Kolor</button>
-    <button class="tab-btn" data-tab="animations">Animacje</button>
-    <button class="tab-btn" data-tab="schedule">Alarm</button>
-    <button class="tab-btn" data-tab="settings">Ustawienia</button>
+    <button class="tb on" data-tab="control">Kolor</button>
+    <button class="tb" data-tab="anim">Animacje</button>
+    <button class="tb" data-tab="sched">Alarm</button>
+    <button class="tb" data-tab="set">Ustawienia</button>
   </nav>
 
   <div id="content">
-    <!-- CONTROL TAB -->
-    <div class="tab-panel active" id="tab-control">
+    <!-- KOLOR -->
+    <div class="panel on" id="tab-control">
       <div class="card">
-        <div class="card-title">🎨 Koło kolorów</div>
-        <canvas id="colorCanvas" width="240" height="240"></canvas>
-        <div id="colorPreview" style="background:#ff0000"></div>
+        <div class="ct">🎨 Koło kolorów</div>
+        <div id="wheelWrap">
+          <canvas id="colorCanvas" width="260" height="260"></canvas>
+          <div id="wheelCursor"></div>
+        </div>
+        <div id="colorPreviewRow">
+          <div id="colorSwatch"></div>
+          <div>
+            <div id="colorHex">#FF0000</div>
+            <div id="colorHexSub">rgb(255, 0, 0)</div>
+          </div>
+        </div>
       </div>
       <div class="card">
-        <div class="card-title">☀️ Jasność</div>
-        <div class="slider-wrap">
-          <div class="slider-label"><span>Jasność</span><span id="brightnessVal">100%</span></div>
-          <input type="range" id="brightnessSlider" min="0" max="100" value="100">
+        <div class="ct">☀️ Jasność / Temperatura</div>
+        <div class="slw">
+          <div class="sll"><span>Jasność</span><span id="brightV">100%</span></div>
+          <input type="range" id="sBright" min="0" max="100" value="100">
         </div>
-        <div class="slider-wrap" style="margin-top:12px">
-          <div class="slider-label"><span>Temperatura bieli</span><span id="tempVal">–</span></div>
-          <input type="range" id="tempSlider" min="0" max="100" value="50">
+        <div class="slw" style="margin-top:12px">
+          <div class="sll"><span>Temperatura bieli</span><span id="tempV">Neutralna</span></div>
+          <input type="range" id="sTemp" min="0" max="100" value="50">
         </div>
       </div>
       <div class="card">
-        <div class="card-title">🔢 RGB ręcznie</div>
-        <div class="rgb-row">
-          <div class="rgb-input-wrap">
-            <label>R</label>
-            <input type="number" id="inR" min="0" max="255" value="255">
-          </div>
-          <div class="rgb-input-wrap">
-            <label>G</label>
-            <input type="number" id="inG" min="0" max="255" value="0">
-          </div>
-          <div class="rgb-input-wrap">
-            <label>B</label>
-            <input type="number" id="inB" min="0" max="255" value="0">
-          </div>
+        <div class="ct">🔢 RGB ręcznie</div>
+        <div class="rgbrow">
+          <div class="rgbwrap"><label>R</label><input type="number" id="inR" min="0" max="255" value="255"></div>
+          <div class="rgbwrap"><label>G</label><input type="number" id="inG" min="0" max="255" value="0"></div>
+          <div class="rgbwrap"><label>B</label><input type="number" id="inB" min="0" max="255" value="0"></div>
         </div>
-        <button class="pwr-btn" style="width:100%;margin-top:10px;background:linear-gradient(135deg,var(--accent),var(--accent3));color:white" onclick="sendFromRGBInputs()">WYŚLIJ RGB</button>
+        <button class="bigbtn" style="margin-top:10px" onclick="sendFromRGB()">WYŚLIJ RGB</button>
       </div>
     </div>
 
-    <!-- ANIMATIONS TAB -->
-    <div class="tab-panel" id="tab-animations">
+    <!-- ANIMACJE -->
+    <div class="panel" id="tab-anim">
       <div class="card">
-        <div class="card-title">⭐ Szybkie efekty</div>
-        <div class="anim-grid" id="quickAnimGrid"></div>
+        <div class="ct">⭐ Popularne efekty</div>
+        <div class="agrid" id="quickGrid"></div>
       </div>
       <div class="card">
-        <div class="card-title">🔢 Wszystkie tryby (0x01–0x64)</div>
-        <div class="anim-grid" id="animGrid"></div>
-      </div>
-    </div>
-
-    <!-- SCHEDULE TAB -->
-    <div class="tab-panel" id="tab-schedule">
-      <div class="card">
-        <div class="card-title">⏰ Harmonogram / Budzik</div>
-        <div id="scheduleList"></div>
-        <button class="pwr-btn" style="width:100%;margin-top:8px;background:linear-gradient(135deg,var(--accent2),var(--accent3));color:white" onclick="addSchedule()">+ DODAJ ALARM</button>
-      </div>
-      <div class="card">
-        <div class="card-title">ℹ️ Info</div>
-        <p style="font-size:.8rem;color:var(--muted);line-height:1.6">Alarmy działają gdy karta przeglądarki jest otwarta. O wybranej godzinie taśma LED włączy się efektem "Wschód słońca".</p>
+        <div class="ct">📋 Wszystkie tryby (01–64 hex)</div>
+        <div class="agrid" id="allGrid"></div>
       </div>
     </div>
 
-    <!-- SETTINGS TAB -->
-    <div class="tab-panel" id="tab-settings">
+    <!-- ALARM -->
+    <div class="panel" id="tab-sched">
+      <div class="notice">
+        <strong>⚠️ Ważne:</strong> Alarmy działają gdy <strong>karta jest otwarta</strong> i urządzenie połączone przez BLE. Dane zapisywane są trwale w pamięci aplikacji i przeżywają restart.
+      </div>
       <div class="card">
-        <div class="card-title">⚙️ Ustawienia</div>
-        <div class="setting-row">
-          <div>
-            <div class="setting-label">Auto-reconnect</div>
-            <div class="setting-sub">Ponów połączenie po rozłączeniu</div>
-          </div>
-          <input type="checkbox" id="autoReconnect" checked style="width:18px;height:18px;accent-color:var(--accent)">
+        <div class="ct">⏰ Twoje alarmy</div>
+        <div id="schedList"></div>
+        <button class="bigbtn" style="margin-top:8px" onclick="addSched()">+ DODAJ ALARM</button>
+      </div>
+    </div>
+
+    <!-- USTAWIENIA -->
+    <div class="panel" id="tab-set">
+      <div class="card">
+        <div class="ct">⚙️ Połączenie</div>
+        <div class="sr">
+          <div><div class="sl">Auto-reconnect</div><div class="ss">Wykładniczy retry (2s→4s→8s→15s→30s)</div></div>
+          <input type="checkbox" id="cfgReconn" checked>
         </div>
-        <div class="setting-row">
-          <div>
-            <div class="setting-label">Heartbeat (co 10s)</div>
-            <div class="setting-sub">Wysyła 0x00 by utrzymać połączenie</div>
-          </div>
-          <input type="checkbox" id="heartbeatEnabled" checked style="width:18px;height:18px;accent-color:var(--accent)">
+        <div class="sr">
+          <div><div class="sl">Heartbeat co 10s</div><div class="ss">Wysyła 0x00 by utrzymać połączenie</div></div>
+          <input type="checkbox" id="cfgHB" checked>
         </div>
-        <div class="setting-row">
-          <div>
-            <div class="setting-label">Multi-protocol burst</div>
-            <div class="setting-sub">Wysyła do 4 protokołów jednocześnie</div>
-          </div>
-          <input type="checkbox" id="multiProto" checked style="width:18px;height:18px;accent-color:var(--accent)">
+        <div class="sr">
+          <div><div class="sl">Multi-protocol burst</div><div class="ss">FB + 7e…ef + 55 + ELK równolegle</div></div>
+          <input type="checkbox" id="cfgMP" checked>
         </div>
-        <div class="setting-row">
-          <div>
-            <div class="setting-label">Throttle (ms)</div>
-            <div class="setting-sub">Min. czas między pakietami</div>
-          </div>
-          <select id="throttleMs" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px;font-family:var(--mono)">
+        <div class="sr">
+          <div><div class="sl">Throttle koloru</div><div class="ss">Min. przerwa między pakietami RGB</div></div>
+          <select id="cfgThrottle" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px;font-family:var(--m)">
             <option value="30">30ms</option>
             <option value="50" selected>50ms</option>
             <option value="100">100ms</option>
@@ -349,16 +276,18 @@
         </div>
       </div>
       <div class="card">
-        <div class="card-title">📡 Service UUID</div>
-        <div style="font-family:var(--mono);font-size:.65rem;color:var(--accent3);word-break:break-all">6e400001-b5a3-f393-e0a9-e50e24dcca9e</div>
-        <div style="font-family:var(--mono);font-size:.65rem;color:var(--accent3);word-break:break-all;margin-top:4px">6e400002-b5a3-f393-e0a9-e50e24dcca9e</div>
+        <div class="ct">📡 UUID serwisu</div>
+        <div style="font-family:var(--m);font-size:.6rem;color:var(--accent3);line-height:2.2;word-break:break-all">
+          SVC: 6e400001-b5a3-f393-e0a9-e50e24dcca9e<br>
+          CHR: 6e400002-b5a3-f393-e0a9-e50e24dcca9e
+        </div>
       </div>
       <div class="card">
-        <div class="card-title">📋 Log BLE</div>
+        <div class="ct">📋 Log BLE</div>
         <div id="logBox"></div>
       </div>
       <div class="card">
-        <button class="btn-sm danger" onclick="clearStorage()" style="width:100%">🗑 Wyczyść dane lokalne</button>
+        <button class="bsm d" style="width:100%" onclick="clearAll()">🗑 Wyczyść dane lokalne</button>
       </div>
     </div>
   </div>
@@ -367,486 +296,630 @@
 <div id="toast"></div>
 
 <script>
-// ===================== STATE =====================
-let device = null, server = null, characteristic = null;
-let heartbeatTimer = null, reconnectTimer = null;
-let currentR = 255, currentG = 0, currentB = 0;
-let lastSendTime = 0;
-let schedules = [];
-let activeAnimBtn = null;
+// ═══════════════════════ CONFIG ═══════════════════════
+const SVC = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+const CHR = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+const RECONNECT_DELAYS = [2000,4000,8000,15000,30000,60000];
 
-const SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
-const CHAR_UUID    = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+// ═══════════════════════ STATE ════════════════════════
+let btDevice=null, btServer=null, btChar=null;
+let hbTimer=null, reconnTimer=null;
+let R=255, G=0, B=0, brightness=1.0;
+let wheelH=0, wheelS=100;   // track hue/sat for cursor
+let lastSendMs=0;
+let activeAnimBtn=null;
+let schedules=[];
+let lastTriggered={};
+let isReconn=false, reconnAttempt=0;
 
-// ===================== LOCAL STORAGE =====================
-function loadState() {
-  try {
-    const c = JSON.parse(localStorage.getItem('led_color') || 'null');
-    if (c) { currentR=c.r; currentG=c.g; currentB=c.b; }
-    schedules = JSON.parse(localStorage.getItem('led_schedules') || '[]');
-  } catch(e) {}
+// ═══════════════════════ PERSIST ══════════════════════
+function saveAll(){
+  try{
+    localStorage.setItem('lp2_rgb',JSON.stringify({r:R,g:G,b:B}));
+    localStorage.setItem('lp2_bright',String(brightness));
+    localStorage.setItem('lp2_sched',JSON.stringify(schedules));
+    localStorage.setItem('lp2_whs',JSON.stringify({h:wheelH,s:wheelS}));
+  }catch(e){}
 }
-function saveColor() {
-  localStorage.setItem('led_color', JSON.stringify({r:currentR,g:currentG,b:currentB}));
+function loadAll(){
+  try{
+    const c=JSON.parse(localStorage.getItem('lp2_rgb')||'null');
+    if(c){R=c.r;G=c.g;B=c.b;}
+    const bv=parseFloat(localStorage.getItem('lp2_bright'));
+    if(!isNaN(bv)) brightness=bv;
+    schedules=JSON.parse(localStorage.getItem('lp2_sched')||'[]');
+    const whs=JSON.parse(localStorage.getItem('lp2_whs')||'null');
+    if(whs){wheelH=whs.h;wheelS=whs.s;}
+  }catch(e){}
 }
-function saveSchedules() {
-  localStorage.setItem('led_schedules', JSON.stringify(schedules));
-}
-function clearStorage() {
-  localStorage.clear(); toast('Dane wyczyszczone'); schedules=[]; renderSchedules();
-}
-
-// ===================== LOG =====================
-function log(msg, type='info') {
-  const box = document.getElementById('logBox');
-  const t = new Date().toLocaleTimeString('pl-PL');
-  const div = document.createElement('div');
-  div.className = 'log-'+type;
-  div.textContent = `[${t}] ${msg}`;
-  box.appendChild(div);
-  box.scrollTop = box.scrollHeight;
-  // keep max 80 lines
-  while(box.children.length > 80) box.removeChild(box.firstChild);
-}
-
-// ===================== TOAST =====================
-let toastTimer;
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>el.classList.remove('show'), 2500);
+function clearAll(){
+  localStorage.clear(); schedules=[];
+  renderScheds(); toast('🗑 Wyczyszczono'); log('localStorage wyczyszczony','inf');
 }
 
-// ===================== STATUS =====================
-function setStatus(text, cls='') {
-  const el = document.getElementById('statusBadge');
-  el.textContent = text;
-  el.className = cls;
+// ═══════════════════════ LOG / TOAST ══════════════════
+function log(msg,t='inf'){
+  const box=document.getElementById('logBox');
+  const d=document.createElement('div');
+  d.className='l'+t;
+  d.textContent='['+new Date().toLocaleTimeString('pl-PL')+'] '+msg;
+  box.appendChild(d);
+  box.scrollTop=box.scrollHeight;
+  while(box.children.length>120) box.removeChild(box.firstChild);
+}
+let tT;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(tT); tT=setTimeout(()=>el.classList.remove('show'),2600);
+}
+function setStatus(txt,cls=''){
+  const el=document.getElementById('statusBadge');
+  el.textContent=txt; el.className=cls;
 }
 
-// ===================== BLE CONNECT =====================
-async function connectBLE() {
-  if (!navigator.bluetooth) {
-    toast('⚠️ Web Bluetooth niedostępny'); log('Web Bluetooth API nie jest wspierane','err'); return;
+// ═══════════════════════ BLE ══════════════════════════
+async function connectBLE(){
+  if(!navigator.bluetooth){toast('⚠️ Web Bluetooth niedostępny');return;}
+  if(btChar){
+    try{btDevice&&btDevice.gatt.disconnect();}catch(e){}
+    btChar=null; btServer=null; isReconn=false;
+    clearTimeout(reconnTimer);
+    setStatus('ROZŁĄCZONY','');
+    document.getElementById('btnBLE').textContent='🔵 BLE';
+    stopHB(); log('Ręcznie rozłączono','inf'); return;
   }
-  try {
-    setStatus('ŁĄCZENIE...','connecting');
-    log('Szukam urządzeń BLE...','info');
-    device = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: [SERVICE_UUID]
+  try{
+    setStatus('SZUKAM…','cing');
+    log('Szukam urządzenia BLE…','inf');
+    btDevice=await navigator.bluetooth.requestDevice({
+      acceptAllDevices:true,
+      optionalServices:[SVC]
     });
-    device.addEventListener('gattserverdisconnected', onDisconnected);
+    btDevice.addEventListener('gattserverdisconnected', onDisc);
+    reconnAttempt=0; isReconn=false;
     await doConnect();
-  } catch(e) {
-    log('Błąd: '+e.message,'err');
-    setStatus('BŁĄD','');
-    toast('❌ '+e.message);
+  }catch(e){
+    log('Błąd requestDevice: '+e.message,'err');
+    setStatus('BŁĄD',''); toast('❌ '+e.message);
   }
 }
 
-async function doConnect() {
-  try {
-    log('Łączę z GATT...','info');
-    server = await device.gatt.connect();
-    log('Szukam serwisu...','info');
-    const service = await server.getPrimaryService(SERVICE_UUID);
-    log('Szukam charakterystyki...','info');
-    characteristic = await service.getCharacteristic(CHAR_UUID);
-    setStatus('✓ '+device.name,'connected');
-    log('Połączono z: '+(device.name||'Nieznane'),'ok');
-    toast('✅ Połączono!');
-    localStorage.setItem('led_deviceId', device.id);
-    startHeartbeat();
-  } catch(e) {
-    log('Błąd połączenia: '+e.message,'err');
+async function doConnect(){
+  try{
+    setStatus('ŁĄCZĘ…','cing');
+    log('Łączę z GATT…','inf');
+    btServer = await btDevice.gatt.connect();
+    log('Uzyskuję serwis…','inf');
+    const svc = await btServer.getPrimaryService(SVC);
+    log('Uzyskuję charakterystykę…','inf');
+    btChar = await svc.getCharacteristic(CHR);
+    const name = btDevice.name || 'Nieznane';
+    setStatus('✓ '+name,'conn');
+    document.getElementById('btnBLE').textContent='🔴 ROZŁĄCZ';
+    log('Połączono: '+name,'ok');
+    toast('✅ Połączono z: '+name);
+    isReconn=false; reconnAttempt=0;
+    clearTimeout(reconnTimer);
+    startHB();
+  }catch(e){
+    log('doConnect błąd: '+e.message,'err');
+    btChar=null;
     setStatus('BŁĄD','');
-    toast('❌ '+e.message);
+    if(document.getElementById('cfgReconn').checked && btDevice){
+      scheduleReconn();
+    }
   }
 }
 
-function onDisconnected() {
-  log('Rozłączono!','err');
+function onDisc(){
+  log('GATT rozłączony','err');
   setStatus('ROZŁĄCZONY','');
-  characteristic = null;
-  stopHeartbeat();
-  if (document.getElementById('autoReconnect').checked) {
-    log('Auto-reconnect za 3s...','info');
-    toast('🔄 Ponawiam połączenie...');
-    reconnectTimer = setTimeout(async ()=>{
-      if(device) {
-        try { await doConnect(); } catch(e){ log('Auto-reconnect fail: '+e.message,'err'); }
+  document.getElementById('btnBLE').textContent='🔵 BLE';
+  btChar=null; stopHB();
+  if(document.getElementById('cfgReconn').checked && btDevice && !isReconn){
+    scheduleReconn();
+  }
+}
+
+function scheduleReconn(){
+  if(isReconn) return;
+  isReconn=true;
+  function tryNext(){
+    if(!btDevice||!isReconn) return;
+    const wait=RECONNECT_DELAYS[Math.min(reconnAttempt,RECONNECT_DELAYS.length-1)];
+    reconnAttempt++;
+    log(`Auto-reconnect #${reconnAttempt} za ${wait/1000}s…`,'inf');
+    toast(`🔄 Reconnect #${reconnAttempt}`);
+    reconnTimer=setTimeout(async()=>{
+      if(!btDevice||!isReconn) return;
+      try{
+        await doConnect();
+      }catch(e){
+        log('Reconnect fail: '+e.message,'err');
+        tryNext();
       }
-    }, 3000);
+    },wait);
   }
+  tryNext();
 }
 
-// ===================== WRITE =====================
-async function writeBytes(bytes) {
-  if (!characteristic) { log('Brak połączenia','err'); return false; }
-  try {
-    const data = new Uint8Array(bytes);
-    try { await characteristic.writeValueWithoutResponse(data); }
-    catch { await characteristic.writeValueWithResponse(data); }
+// ═══════════════════════ WRITE ════════════════════════
+async function wr(bytes){
+  if(!btChar) return false;
+  try{
+    const d=new Uint8Array(bytes);
+    try{await btChar.writeValueWithoutResponse(d);}
+    catch{await btChar.writeValueWithResponse(d);}
     return true;
-  } catch(e) {
-    log('Błąd zapisu: '+e.message,'err');
-    return false;
+  }catch(e){
+    log('write err: '+e.message,'err'); return false;
   }
 }
 
-// ===================== PROTOCOL BUILDER =====================
-function buildPackets(cmd, r, g, b) {
-  const packets = [];
-  if (document.getElementById('multiProto').checked) {
-    // Protocol A: FB / HiLighting
-    packets.push([0xfb, 0xeb, cmd, r, g, b]);
-    // Protocol B: Classic 7e ... ef
-    packets.push([0x7e, 0x07, 0x05, 0x03, r, g, b, 0x00, 0xef]);
-    // Protocol C: Trinary 55
-    packets.push([0x55, cmd, r, g, b, 0x00, 0x00, 0x00]);
-    // Protocol D: ELK raw
-    packets.push([r, g, b]);
-  } else {
-    // Just Protocol B as default
-    packets.push([0x7e, 0x07, 0x05, 0x03, r, g, b, 0x00, 0xef]);
-  }
-  return packets;
+// ═══════════════════════ PROTOCOLS ════════════════════
+async function burstRGB(r,g,b){
+  const mp=document.getElementById('cfgMP').checked;
+  // Protocol B: 7e (most compatible for RGB)
+  await wr([0x7e,0x07,0x05,0x03,r,g,b,0x00,0xef]);
+  if(!mp) return;
+  // Protocol A: FB/HiLighting
+  await wr([0xfb,0xeb,0x05,r,g,b]);
+  // Protocol C: Trinary 55
+  await wr([0x55,0x05,r,g,b,0x00,0x00,0x00]);
+  // Protocol D: ELK raw bytes
+  await wr([r,g,b]);
 }
 
-function buildAnimPackets(animByte) {
-  const packets = [];
-  // Protocol B: animation/mode
-  packets.push([0x7e, 0x05, 0x03, animByte, 0x03, 0x00, 0x00, 0x00, 0xef]);
+// Each protocol uses DIFFERENT bytes for animation mode
+async function burstAnim(byte){
+  const mp=document.getElementById('cfgMP').checked;
+  // Protocol B
+  await wr([0x7e,0x05,0x03,byte,0x03,0x00,0x00,0x00,0xef]);
+  if(!mp) return;
   // Protocol A
-  packets.push([0xfb, 0xeb, 0x04, animByte, 0x03, 0x00]);
+  await wr([0xfb,0xeb,0x04,byte,0x03,0xff]);
   // Protocol C
-  packets.push([0x55, 0x04, animByte, 0x03, 0x00, 0x00, 0x00, 0x00]);
-  return packets;
+  await wr([0x55,0xf0,byte,0x00,0x00,0x00,0x00,0x00]);
+  // Classic CC command used in older BT LED controllers
+  await wr([0xbb,byte,0x44]);
 }
 
-// ===================== THROTTLED SEND =====================
-async function sendColor(r, g, b) {
-  const now = Date.now();
-  const throttle = parseInt(document.getElementById('throttleMs').value);
-  if (now - lastSendTime < throttle) return;
-  lastSendTime = now;
-  const packets = buildPackets(0x05, r, g, b);
-  for (const pkt of packets) await writeBytes(pkt);
-}
-
-// ===================== ON / OFF =====================
-async function sendOn() {
-  if (!characteristic) { toast('⚠️ Nie połączono!'); return; }
-  const pkts = [
-    [0x7e, 0x04, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0xef],
-    [0xfb, 0xeb, 0x04, 0x01, 0x00, 0x00],
-    [0x55, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00],
-    [0xcc, 0x23, 0x33]
-  ];
-  for(const p of pkts) await writeBytes(p);
-  log('ON wyslano','ok'); toast('💡 ON');
-}
-
-async function sendOff() {
-  if (!characteristic) { toast('⚠️ Nie połączono!'); return; }
-  const pkts = [
-    [0x7e, 0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xef],
-    [0xfb, 0xeb, 0x04, 0x00, 0x00, 0x00],
-    [0x55, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
-    [0xcc, 0x24, 0x33]
-  ];
-  for(const p of pkts) await writeBytes(p);
-  log('OFF wyslano','ok'); toast('🌑 OFF');
-}
-
-// ===================== HEARTBEAT =====================
-function startHeartbeat() {
-  stopHeartbeat();
-  heartbeatTimer = setInterval(async ()=>{
-    if (!document.getElementById('heartbeatEnabled').checked) return;
-    if (characteristic) {
-      try { await writeBytes([0x00]); } catch(e){}
-    }
-  }, 10000);
-}
-function stopHeartbeat() {
-  clearInterval(heartbeatTimer); heartbeatTimer = null;
-}
-
-// ===================== COLOR WHEEL =====================
-function drawColorWheel(canvas) {
-  const ctx = canvas.getContext('2d');
-  const cx = canvas.width/2, cy = canvas.height/2, r = cx - 2;
-  for (let angle=0; angle<360; angle++) {
-    const startAngle = (angle-1) * Math.PI/180;
-    const endAngle = (angle+1) * Math.PI/180;
-    for (let ri=0; ri<=r; ri+=2) {
-      const sat = ri/r * 100;
-      ctx.beginPath();
-      ctx.moveTo(cx + Math.cos(startAngle)*(ri-2), cy + Math.sin(startAngle)*(ri-2));
-      ctx.arc(cx, cy, ri, startAngle, endAngle);
-      ctx.closePath();
-      ctx.fillStyle = `hsl(${angle},${sat}%,50%)`;
-      ctx.fill();
-    }
+async function burstPower(on){
+  const mp=document.getElementById('cfgMP').checked;
+  if(on){
+    await wr([0x7e,0x04,0x04,0x01,0x00,0x00,0x00,0x00,0xef]);
+    if(!mp) return;
+    await wr([0xfb,0xeb,0x04,0x01,0x00,0x00]);
+    await wr([0x55,0xf0,0x01,0x00,0x00,0x00,0x00,0x00]);
+    await wr([0xcc,0x23,0x33]);
+  }else{
+    await wr([0x7e,0x04,0x04,0x00,0x00,0x00,0x00,0x00,0xef]);
+    if(!mp) return;
+    await wr([0xfb,0xeb,0x04,0x00,0x00,0x00]);
+    await wr([0x55,0xf0,0x00,0x00,0x00,0x00,0x00,0x00]);
+    await wr([0xcc,0x24,0x33]);
   }
 }
 
-function hslToRgb(h, s, l) {
+async function sendColor(r,g,b){
+  const now=Date.now();
+  const th=parseInt(document.getElementById('cfgThrottle').value);
+  if(now-lastSendMs < th) return;
+  lastSendMs=now;
+  await burstRGB(r,g,b);
+}
+
+async function sendOn(){
+  if(!btChar){toast('⚠️ Nie połączono!');return;}
+  await burstPower(true); log('ON','ok'); toast('💡 ON');
+}
+async function sendOff(){
+  if(!btChar){toast('⚠️ Nie połączono!');return;}
+  await burstPower(false); log('OFF','ok'); toast('🌑 OFF');
+}
+
+// ═══════════════════════ HEARTBEAT ════════════════════
+function startHB(){
+  stopHB();
+  hbTimer=setInterval(async()=>{
+    if(!document.getElementById('cfgHB').checked) return;
+    if(btChar) try{await wr([0x00]);}catch(e){}
+  },10000);
+}
+function stopHB(){clearInterval(hbTimer);hbTimer=null;}
+
+// ═══════════════════════ COLOR WHEEL ══════════════════
+function hsl2rgb(h,s,l){
   s/=100; l/=100;
-  const k = n => (n+h/30)%12;
-  const a = s*Math.min(l,1-l);
-  const f = n => l - a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
-  return [Math.round(f(0)*255), Math.round(f(8)*255), Math.round(f(4)*255)];
+  const k=n=>(n+h/30)%12;
+  const a=s*Math.min(l,1-l);
+  const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
+  return[Math.round(f(0)*255),Math.round(f(8)*255),Math.round(f(4)*255)];
 }
 
-function initColorWheel() {
-  const canvas = document.getElementById('colorCanvas');
-  const size = Math.min(window.innerWidth - 64, 260);
-  canvas.width = canvas.height = size;
-  drawColorWheel(canvas);
-
-  let picking = false;
-  function pick(e) {
-    if (!picking && e.type === 'mousemove') return;
-    const rect = canvas.getBoundingClientRect();
-    const cx = e.clientX||e.touches[0].clientX, cy = e.clientY||e.touches[0].clientY;
-    const x = cx - rect.left - canvas.width/2;
-    const y = cy - rect.top - canvas.height/2;
-    const dist = Math.sqrt(x*x+y*y), maxR = canvas.width/2-2;
-    if (dist > maxR) return;
-    const angle = ((Math.atan2(y,x)*180/Math.PI)+360)%360;
-    const sat = dist/maxR*100;
-    const [r,g,b] = hslToRgb(angle, sat, 50);
-    const bright = parseInt(document.getElementById('brightnessSlider').value)/100;
-    currentR = Math.round(r*bright);
-    currentG = Math.round(g*bright);
-    currentB = Math.round(b*bright);
-    updateColorUI();
-    sendColor(currentR, currentG, currentB);
+function rgb2hsl(r,g,b){
+  r/=255;g/=255;b/=255;
+  const max=Math.max(r,g,b),min=Math.min(r,g,b);
+  let h=0,s=0,l=(max+min)/2;
+  if(max!==min){
+    const d=max-min;
+    s=d/(1-Math.abs(2*l-1));
+    if(max===r) h=((g-b)/d+6)%6;
+    else if(max===g) h=(b-r)/d+2;
+    else h=(r-g)/d+4;
+    h*=60;
   }
-  canvas.addEventListener('mousedown', ()=>picking=true);
-  canvas.addEventListener('mouseup', ()=>picking=false);
-  canvas.addEventListener('mousemove', pick);
-  canvas.addEventListener('touchstart', e=>{picking=true; pick(e); e.preventDefault();},{passive:false});
-  canvas.addEventListener('touchend', ()=>picking=false);
-  canvas.addEventListener('touchmove', e=>{pick(e); e.preventDefault();},{passive:false});
+  return[h,s*100,l*100];
 }
 
-function updateColorUI() {
-  const hex = '#'+[currentR,currentG,currentB].map(v=>v.toString(16).padStart(2,'0')).join('');
-  document.getElementById('colorPreview').style.background = hex;
-  document.getElementById('inR').value = currentR;
-  document.getElementById('inG').value = currentG;
-  document.getElementById('inB').value = currentB;
-  saveColor();
+function drawWheel(canvas){
+  const ctx=canvas.getContext('2d');
+  const cx=canvas.width/2, cy=canvas.height/2, maxR=cx-1;
+  for(let a=0;a<360;a++){
+    const sa=(a-1)*Math.PI/180, ea=(a+2)*Math.PI/180;
+    const grad=ctx.createRadialGradient(cx,cy,0,cx,cy,maxR);
+    grad.addColorStop(0,'rgba(255,255,255,1)');
+    grad.addColorStop(1,`hsl(${a},100%,50%)`);
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,maxR,sa,ea);
+    ctx.closePath();
+    ctx.fillStyle=grad;
+    ctx.fill();
+  }
 }
 
-document.getElementById('brightnessSlider').addEventListener('input', function() {
-  document.getElementById('brightnessVal').textContent = this.value+'%';
-  // Re-send current color with new brightness applied at wheel level (color values already scaled)
-  sendColor(currentR, currentG, currentB);
+function hs2canvasXY(h,s,canvas){
+  const cx=canvas.width/2, cy=canvas.height/2, maxR=cx-1;
+  const angle=h*Math.PI/180;
+  const r=(s/100)*maxR;
+  return{x:cx+Math.cos(angle)*r, y:cy+Math.sin(angle)*r};
+}
+
+function moveCursorTo(x,y,hex){
+  const cur=document.getElementById('wheelCursor');
+  cur.style.left=x+'px';
+  cur.style.top=y+'px';
+  cur.style.background=hex||'#fff';
+  cur.style.display='block';
+}
+
+function initWheel(){
+  const canvas=document.getElementById('colorCanvas');
+  const size=Math.min(window.innerWidth-52,280);
+  canvas.width=canvas.height=size;
+  drawWheel(canvas);
+
+  // Place cursor based on loaded state
+  syncCursorToState();
+
+  let down=false;
+  function pick(clientX, clientY){
+    const rect=canvas.getBoundingClientRect();
+    const x=clientX-rect.left, y=clientY-rect.top;
+    const cx=canvas.width/2, cy=canvas.height/2, maxR=cx-1;
+    const dx=x-cx, dy=y-cy;
+    let dist=Math.sqrt(dx*dx+dy*dy);
+    // clamp to wheel edge
+    if(dist>maxR+6) return;
+    dist=Math.min(dist,maxR);
+    const angle=((Math.atan2(dy,dx)*180/Math.PI)+360)%360;
+    const sat=dist/maxR*100;
+    wheelH=angle; wheelS=sat;
+    const[r,g,b]=hsl2rgb(angle,sat,50);
+    R=clamp(Math.round(r*brightness));
+    G=clamp(Math.round(g*brightness));
+    B=clamp(Math.round(b*brightness));
+    const hex=rgb2hex(R,G,B);
+    // Move cursor to clamped position
+    const cp=hs2canvasXY(angle,dist/maxR*100,canvas);
+    moveCursorTo(cp.x,cp.y,hex);
+    updateUI();
+    sendColor(R,G,B);
+  }
+
+  canvas.addEventListener('mousedown',e=>{down=true;pick(e.clientX,e.clientY)});
+  window.addEventListener('mouseup',()=>down=false);
+  window.addEventListener('mousemove',e=>{if(down)pick(e.clientX,e.clientY)});
+  canvas.addEventListener('touchstart',e=>{down=true;pick(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
+  window.addEventListener('touchend',()=>down=false);
+  canvas.addEventListener('touchmove',e=>{if(down)pick(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
+}
+
+function syncCursorToState(){
+  const canvas=document.getElementById('colorCanvas');
+  if(!canvas.width) return;
+  // wheelH/wheelS already loaded from localStorage or computed
+  // if not set, compute from R,G,B
+  if(wheelH===0&&wheelS===0){
+    const[h,s]=rgb2hsl(R,G,B);
+    wheelH=h; wheelS=s;
+  }
+  const cp=hs2canvasXY(wheelH,wheelS,canvas);
+  moveCursorTo(cp.x,cp.y,rgb2hex(R,G,B));
+}
+
+function rgb2hex(r,g,b){
+  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+function clamp(v){return Math.max(0,Math.min(255,v));}
+
+function updateUI(){
+  const hex=rgb2hex(R,G,B);
+  document.getElementById('colorSwatch').style.background=hex;
+  document.getElementById('colorHex').textContent=hex.toUpperCase();
+  document.getElementById('colorHexSub').textContent=`rgb(${R}, ${G}, ${B})`;
+  document.getElementById('inR').value=R;
+  document.getElementById('inG').value=G;
+  document.getElementById('inB').value=B;
+  // sync cursor color
+  document.getElementById('wheelCursor').style.background=hex;
+  saveAll();
+}
+
+// Brightness slider
+document.getElementById('sBright').addEventListener('input',function(){
+  brightness=this.value/100;
+  document.getElementById('brightV').textContent=this.value+'%';
+  const[r,g,b]=hsl2rgb(wheelH,wheelS,50);
+  R=clamp(Math.round(r*brightness));
+  G=clamp(Math.round(g*brightness));
+  B=clamp(Math.round(b*brightness));
+  updateUI(); sendColor(R,G,B);
 });
 
-document.getElementById('tempSlider').addEventListener('input', function() {
-  const v = this.value; // 0=warm 100=cold
-  document.getElementById('tempVal').textContent = (v<33?'Ciepły':v<66?'Neutralny':'Zimny');
-  // Warm white to cool white
-  const r = Math.round(255 - v*0.8);
-  const g = Math.round(255 - Math.abs(v-50)*1);
-  const b = Math.round(v*2.55);
+// Temperature slider
+const TEMP_NAMES=['Ciepła (2700K)','Ciepła (3000K)','Neutralna (4000K)','Zimna (5500K)','Zimna (6500K)'];
+document.getElementById('sTemp').addEventListener('input',function(){
+  const v=parseInt(this.value);
+  document.getElementById('tempV').textContent=TEMP_NAMES[Math.round(v/25)];
+  const r=clamp(Math.round(255-v*0.75));
+  const g=clamp(Math.round(200+v*0.4));
+  const b=clamp(Math.round(v*2.5));
   sendColor(r,g,b);
 });
 
-function sendFromRGBInputs() {
-  currentR = Math.max(0,Math.min(255,parseInt(document.getElementById('inR').value)||0));
-  currentG = Math.max(0,Math.min(255,parseInt(document.getElementById('inG').value)||0));
-  currentB = Math.max(0,Math.min(255,parseInt(document.getElementById('inB').value)||0));
-  updateColorUI();
-  sendColor(currentR, currentG, currentB);
+function sendFromRGB(){
+  R=clamp(parseInt(document.getElementById('inR').value)||0);
+  G=clamp(parseInt(document.getElementById('inG').value)||0);
+  B=clamp(parseInt(document.getElementById('inB').value)||0);
+  // Recompute wheelH/S from new RGB
+  const[h,s]=rgb2hsl(R,G,B);
+  wheelH=h; wheelS=s;
+  syncCursorToState();
+  updateUI();
+  sendColor(R,G,B);
 }
 
-// ===================== ANIMATIONS =====================
-const QUICK_ANIMS = [
-  {name:'🌈 Tęcza', byte:0x01},
-  {name:'💓 Puls', byte:0x25},
-  {name:'⚡ Strobe', byte:0x21},
-  {name:'🌊 Flow', byte:0x14},
-  {name:'🌅 Wschód', byte:0x04},
-  {name:'❄️ Lód', byte:0x0f},
-  {name:'🔥 Ogień', byte:0x09},
-  {name:'🌙 Neon', byte:0x1a},
+// ═══════════════════════ ANIMATIONS ═══════════════════
+const QUICK=[
+  {ico:'🌈',n:'Tęcza',b:0x01},
+  {ico:'💓',n:'Puls',b:0x25},
+  {ico:'⚡',n:'Strobe',b:0x21},
+  {ico:'🌊',n:'Flow',b:0x14},
+  {ico:'🌅',n:'Wschód',b:0x04},
+  {ico:'❄️',n:'Lód',b:0x0f},
+  {ico:'🔥',n:'Ogień',b:0x09},
+  {ico:'🌙',n:'Nocny',b:0x1a},
+  {ico:'🎉',n:'Party',b:0x2d},
+  {ico:'🌺',n:'Kwiat',b:0x11},
+  {ico:'💜',n:'Fiolet',b:0x17},
+  {ico:'🎆',n:'Fajer.',b:0x30},
 ];
 
-function buildAnimGrid() {
-  // Quick anims
-  const qGrid = document.getElementById('quickAnimGrid');
-  QUICK_ANIMS.forEach(a => {
-    const btn = document.createElement('button');
-    btn.className = 'anim-btn';
-    const [ico, ...words] = a.name.split(' ');
-    btn.innerHTML = `<span class="ico">${ico}</span><span>${words.join(' ')}</span>`;
-    btn.onclick = () => { sendAnim(a.byte); setActiveAnim(btn); };
-    qGrid.appendChild(btn);
+// Names for the full grid so buttons aren't identical
+const AN={
+  1:'Tęcza 1',2:'Tęcza 2',3:'Tęcza 3',4:'Wschód',5:'RGB Fade',
+  6:'Bieg R',7:'Bieg G',8:'Bieg B',9:'Ogień',10:'Zieleń',
+  11:'Cyan',12:'Niebieski',13:'Żółty',14:'Magenta',15:'Lód',
+  16:'T.Płynna',17:'Kwiat',18:'Morze',19:'Las',20:'Fala A',
+  21:'Fala B',22:'Fala C',23:'Fiolet',24:'Różowy',25:'Pomarańcz',
+  26:'Nocny',27:'Neon',28:'Błysk A',29:'Błysk B',30:'Błysk C',
+  31:'Fade A',32:'Fade B',33:'Strobe A',34:'Strobe B',35:'Strobe C',
+  36:'Fade R',37:'Puls A',38:'Puls B',39:'Puls C',40:'Puls D',
+  41:'Komet A',42:'Komet B',43:'Komet C',44:'Iskry',45:'Party',
+  46:'Dyskoteka',47:'Tęcza 4',48:'Fajerw.',49:'Fala D',50:'Fala E',
+  51:'Cykl A',52:'Cykl B',53:'Grad A',54:'Grad B',55:'Chase A',
+  56:'Chase B',57:'Chase C',58:'Blink A',59:'Blink B',60:'Blink C',
+  61:'Scan A',62:'Scan B',63:'Scan C',64:'Scan D',65:'Full A',
+  66:'Full B',67:'Full C',68:'Full D',69:'Full E',70:'Snake',
+  71:'Meteor',72:'Lava',73:'Deep',74:'Ocean',75:'Galaxy',
+  76:'Cyber',77:'Matrix',78:'Retro',79:'Mist',80:'Storm',
+  81:'Fade 3',82:'Fade 4',83:'Comet',84:'Burst',85:'Pulse X',
+  86:'Pulse Y',87:'Drift',88:'Wave X',89:'Wave Y',90:'Flow B',
+  91:'Flash X',92:'Flash Y',93:'Spark',94:'Glow A',95:'Glow B',
+  96:'Glow C',97:'Twinkle',98:'Aurora',99:'Dawn',100:'Infinity'
+};
+
+function buildAnimGrids(){
+  const qg=document.getElementById('quickGrid');
+  QUICK.forEach(a=>{
+    const btn=document.createElement('button');
+    btn.className='abtn';
+    btn.innerHTML=`<span class="ico">${a.ico}</span><span>${a.n}</span>`;
+    btn.onclick=()=>{sendAnim(a.b);setActAnim(btn,a.b);};
+    qg.appendChild(btn);
   });
 
-  // Full grid 0x01–0x64
-  const grid = document.getElementById('animGrid');
-  for (let i=1; i<=0x64; i++) {
-    const btn = document.createElement('button');
-    btn.className = 'anim-btn';
-    btn.textContent = '0x'+i.toString(16).padStart(2,'0').toUpperCase();
-    btn.dataset.byte = i;
-    btn.onclick = () => { sendAnim(i); setActiveAnim(btn); };
-    grid.appendChild(btn);
+  const ag=document.getElementById('allGrid');
+  for(let i=1;i<=100;i++){
+    const btn=document.createElement('button');
+    btn.className='abtn';
+    const name=AN[i]||('M'+i);
+    btn.innerHTML=`<span style="font-size:.8rem">▶</span><span>${name}</span>`;
+    btn.dataset.b=i;
+    btn.onclick=()=>{sendAnim(i);setActAnim(btn,i);};
+    ag.appendChild(btn);
   }
 }
 
-function setActiveAnim(btn) {
-  if(activeAnimBtn) activeAnimBtn.classList.remove('active');
-  activeAnimBtn = btn;
-  btn.classList.add('active');
+function setActAnim(btn,byte){
+  if(activeAnimBtn) activeAnimBtn.classList.remove('on');
+  activeAnimBtn=btn; btn.classList.add('on');
+  localStorage.setItem('lp2_anim',String(byte));
 }
 
-async function sendAnim(byte) {
-  if (!characteristic) { toast('⚠️ Nie połączono!'); return; }
-  const pkts = buildAnimPackets(byte);
-  for(const p of pkts) await writeBytes(p);
-  log('Animacja: 0x'+byte.toString(16),'ok');
-  toast('🎬 Tryb 0x'+byte.toString(16).toUpperCase());
+async function sendAnim(byte){
+  if(!btChar){toast('⚠️ Nie połączono!');return;}
+  await burstAnim(byte);
+  const name=AN[byte]||'0x'+byte.toString(16).toUpperCase();
+  log('Animacja: '+name+' (0x'+byte.toString(16).toUpperCase()+')','ok');
+  toast('🎬 '+name);
 }
 
-// Sunrise animation (for alarm)
-async function sunriseAnimation() {
-  await sendOn();
-  await delay(500);
-  // Slowly ramp from red→orange→yellow→white over 60s
-  const steps = 60;
-  for (let i=0; i<steps; i++) {
-    const t = i/steps;
-    const r = Math.round(255*Math.min(1, t*3));
-    const g = Math.round(255*Math.min(1, (t-0.2)*2.5));
-    const b = Math.round(255*Math.min(1, (t-0.5)*2));
-    await sendColor(Math.max(0,r), Math.max(0,g), Math.max(0,b));
-    await delay(1000);
+function restoreAnimBtn(){
+  const b=parseInt(localStorage.getItem('lp2_anim')||'0');
+  if(!b) return;
+  document.querySelectorAll('#allGrid .abtn').forEach(btn=>{
+    if(parseInt(btn.dataset.b)===b) setActAnim(btn,b);
+  });
+}
+
+// ═══════════════════════ SUNRISE ══════════════════════
+async function sunriseAnim(){
+  await sendOn(); await sleep(400);
+  log('Wschód słońca start (90s)…','inf');
+  for(let i=0;i<90;i++){
+    const t=i/90;
+    const r=clamp(Math.round(255*Math.min(1,t*3)));
+    const g=clamp(Math.round(255*Math.min(1,(t-0.15)*2.5)));
+    const b=clamp(Math.round(255*Math.min(1,(t-0.65)*3)));
+    if(!btChar) break;
+    await sendColor(r,g,b);
+    await sleep(1000);
   }
+  log('Wschód zakończony','ok');
 }
-function delay(ms) { return new Promise(r=>setTimeout(r,ms)); }
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
-// ===================== SCHEDULE =====================
-function renderSchedules() {
-  const list = document.getElementById('scheduleList');
-  list.innerHTML = '';
-  schedules.forEach((s, i) => {
-    const row = document.createElement('div');
-    row.className = 'schedule-item';
-    row.innerHTML = `
-      <span style="font-size:1.3rem">⏰</span>
-      <input type="time" value="${s.time}" onchange="schedules[${i}].time=this.value;saveSchedules()">
-      <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:4px;font-family:var(--mono);font-size:.75rem"
-        onchange="schedules[${i}].action=this.value;saveSchedules()">
-        <option value="sunrise" ${s.action==='sunrise'?'selected':''}>🌅 Wschód</option>
-        <option value="on" ${s.action==='on'?'selected':''}>💡 ON</option>
-        <option value="off" ${s.action==='off'?'selected':''}>🌑 OFF</option>
+// ═══════════════════════ SCHEDULE ═════════════════════
+function renderScheds(){
+  const list=document.getElementById('schedList');
+  list.innerHTML='';
+  if(!schedules.length){
+    list.innerHTML='<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:16px">Brak alarmów. Dodaj nowy ↓</div>';
+    return;
+  }
+  schedules.forEach((s,i)=>{
+    const row=document.createElement('div');
+    row.className='si';
+    row.innerHTML=`
+      <span style="font-size:1.1rem">⏰</span>
+      <input type="time" value="${s.time}" onchange="schedules[${i}].time=this.value;saveAll()">
+      <select onchange="schedules[${i}].action=this.value;saveAll()">
+        <option value="sunrise" ${s.action==='sunrise'?'selected':''}>🌅 Wschód słońca</option>
+        <option value="on"      ${s.action==='on'?'selected':''}>💡 Włącz LED</option>
+        <option value="off"     ${s.action==='off'?'selected':''}>🌑 Wyłącz LED</option>
+        <option value="color"   ${s.action==='color'?'selected':''}>🎨 Zapisany kolor</option>
       </select>
-      <button class="sched-toggle ${s.enabled?'on':''}" onclick="toggleSchedule(${i},this)"></button>
-      <button class="btn-sm danger" onclick="removeSchedule(${i})">✕</button>
+      <button class="tog ${s.enabled?'on':''}" onclick="togSched(${i},this)"></button>
+      <button class="bsm d" onclick="delSched(${i})">✕</button>
     `;
     list.appendChild(row);
   });
 }
 
-function addSchedule() {
-  const now = new Date();
-  const h = now.getHours().toString().padStart(2,'0');
-  const m = now.getMinutes().toString().padStart(2,'0');
-  schedules.push({time:`${h}:${m}`, action:'sunrise', enabled:false});
-  saveSchedules(); renderSchedules();
-}
-
-function removeSchedule(i) {
-  schedules.splice(i,1); saveSchedules(); renderSchedules();
-}
-
-function toggleSchedule(i, btn) {
-  schedules[i].enabled = !schedules[i].enabled;
-  btn.classList.toggle('on', schedules[i].enabled);
-  saveSchedules();
-  toast(schedules[i].enabled ? '⏰ Alarm aktywny' : '⏰ Alarm wyłączony');
-}
-
-// Check schedules every 30s
-let lastTriggered = {};
-setInterval(()=>{
-  if (!characteristic) return;
-  const now = new Date();
-  const hm = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
-  schedules.forEach((s,i)=>{
-    if (!s.enabled || s.time !== hm) return;
-    const key = i+'-'+hm;
-    if (lastTriggered[key]) return;
-    lastTriggered[key] = true;
-    log('Alarm! '+hm+' → '+s.action,'ok');
-    toast('⏰ Alarm: '+hm);
-    if (s.action==='sunrise') sunriseAnimation();
-    else if (s.action==='on') sendOn();
-    else sendOff();
+function addSched(){
+  const now=new Date();
+  schedules.push({
+    time:now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0'),
+    action:'sunrise', enabled:true
   });
-  // Clean old triggers
-  const keys = Object.keys(lastTriggered);
-  if (keys.length > 50) { keys.slice(0,25).forEach(k=>delete lastTriggered[k]); }
-}, 30000);
+  saveAll(); renderScheds(); toast('⏰ Alarm dodany');
+}
+function delSched(i){schedules.splice(i,1);saveAll();renderScheds();}
+function togSched(i,btn){
+  schedules[i].enabled=!schedules[i].enabled;
+  btn.classList.toggle('on',schedules[i].enabled);
+  saveAll();
+  toast(schedules[i].enabled?'✅ Alarm aktywny':'❌ Alarm wyłączony');
+}
 
-// ===================== TABS =====================
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+// Check every 10s for accuracy
+setInterval(()=>{
+  const now=new Date();
+  const hm=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  schedules.forEach((s,i)=>{
+    if(!s.enabled||s.time!==hm) return;
+    const key=i+'-'+hm;
+    if(lastTriggered[key]) return;
+    lastTriggered[key]=true;
+    log('🔔 Alarm '+hm+' → '+s.action,'ok');
+    toast('⏰ Alarm: '+hm);
+    if(!btChar){log('Alarm wyzwolony, brak BLE','err');return;}
+    if(s.action==='sunrise') sunriseAnim();
+    else if(s.action==='on') sendOn();
+    else if(s.action==='off') sendOff();
+    else sendColor(R,G,B);
+  });
+  // Cleanup
+  const keys=Object.keys(lastTriggered);
+  if(keys.length>60) keys.slice(0,30).forEach(k=>delete lastTriggered[k]);
+},10000);
+
+// ═══════════════════════ TABS ═════════════════════════
+document.querySelectorAll('.tb').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+    btn.classList.add('on');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('on');
   });
 });
 
-// ===================== PWA INSTALL =====================
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', e=>{
-  e.preventDefault(); deferredPrompt=e;
+// ═══════════════════════ PWA ══════════════════════════
+let dPr;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault(); dPr=e;
   document.getElementById('installBar').classList.add('show');
 });
-document.getElementById('installBtn').onclick = async ()=>{
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
-  if (outcome === 'accepted') toast('✅ Zainstalowano!');
-  deferredPrompt=null;
-  document.getElementById('installBar').classList.remove('show');
+document.getElementById('iBtnYes').onclick=async()=>{
+  if(!dPr) return;
+  dPr.prompt();
+  const{outcome}=await dPr.userChoice;
+  if(outcome==='accepted') toast('✅ Zainstalowano!');
+  dPr=null; document.getElementById('installBar').classList.remove('show');
 };
-document.getElementById('installDismiss').onclick = ()=>{
-  document.getElementById('installBar').classList.remove('show');
-};
+document.getElementById('iBtnNo').onclick=()=>document.getElementById('installBar').classList.remove('show');
 
-// ===================== INIT =====================
-loadState();
-initColorWheel();
-buildAnimGrid();
-renderSchedules();
-updateColorUI();
-log('LED PRO gotowy. Kliknij BLE by połączyć.','info');
-
-// Register minimal service worker for PWA
-if ('serviceWorker' in navigator) {
-  const swCode = `
-    self.addEventListener('fetch', e => {
-      e.respondWith(fetch(e.request).catch(()=>new Response('Offline')));
-    });
-  `;
-  const blob = new Blob([swCode], {type:'application/javascript'});
-  const url = URL.createObjectURL(blob);
-  navigator.serviceWorker.register(url).catch(()=>{});
+// ═══════════════════════ SERVICE WORKER ═══════════════
+if('serviceWorker' in navigator){
+  const sw=`
+const CACHE='ledpro-v3';
+self.addEventListener('install',e=>e.waitUntil(
+  caches.open(CACHE).then(c=>c.add(self.location.href)).then(()=>self.skipWaiting())
+));
+self.addEventListener('activate',e=>e.waitUntil(
+  caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k))))
+  .then(()=>self.clients.claim())
+));
+self.addEventListener('fetch',e=>e.respondWith(
+  caches.match(e.request).then(r=>r||fetch(e.request).then(resp=>{
+    if(resp&&resp.status===200){
+      const cl=resp.clone();
+      caches.open(CACHE).then(c=>c.put(e.request,cl));
+    }
+    return resp;
+  }).catch(()=>caches.match(e.request)))
+));`;
+  const blob=new Blob([sw],{type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob))
+    .then(()=>log('SW: offline cache OK','ok'))
+    .catch(e=>log('SW fail: '+e.message,'err'));
 }
+
+// ═══════════════════════ INIT ═════════════════════════
+loadAll();
+// Restore brightness slider display
+document.getElementById('sBright').value=Math.round(brightness*100);
+document.getElementById('brightV').textContent=Math.round(brightness*100)+'%';
+initWheel();
+updateUI();
+buildAnimGrids();
+renderScheds();
+restoreAnimBtn();
+log('LED PRO v2 gotowy. Kliknij 🔵 BLE by połączyć.','inf');
 </script>
 </body>
 </html>
