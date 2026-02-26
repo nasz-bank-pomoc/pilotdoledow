@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uniwersalny Pilot LED</title>
+    <style>
+        body { background: #121212; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
+        button { width: 100%; max-width: 300px; padding: 20px; margin: 10px; font-size: 18px; border-radius: 15px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .on { background: linear-gradient(45deg, #2ecc71, #27ae60); color: white; box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4); }
+        .off { background: linear-gradient(45deg, #e74c3c, #c0392b); color: white; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4); }
+        #status { margin-top: 20px; color: #aaa; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <h1>Multi-Pilot LED</h1>
+    <p>Ten przycisk wysyła wszystkie znane kody HiLighting na raz:</p>
+    
+    <button class="on" onclick="sendAllCommands('ON')">WŁĄCZ WSZYSTKO</button>
+    <button class="off" onclick="sendAllCommands('OFF')">WYŁĄCZ WSZYSTKO</button>
+
+    <div id="status">Status: Gotowy</div>
+
+    <script>
+        let ledChar = null;
+
+        // Lista wszystkich możliwych kodów dla HiLighting / ELK-BLEDOM
+        const codes = {
+            ON: [
+                '7e0404010005ff00', '7e00040100000000', '5501010100', 
+                'fbeb0101', 'aa01010100', '7e0404010000ff00', '55010101'
+            ],
+            OFF: [
+                '7e0404000005ff00', '7e00040000000000', '5501010000', 
+                'fbeb0100', 'aa01010000', '7e0404000000ff00', '55010100'
+            ]
+        };
+
+        async function sendAllCommands(type) {
+            const statusDiv = document.getElementById('status');
+            try {
+                if (!ledChar) {
+                    statusDiv.innerText = "Status: Szukanie urządzenia...";
+                    const device = await navigator.bluetooth.requestDevice({
+                        filters: [
+                            { services: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e'] },
+                            { namePrefix: 'ELK' },
+                            { namePrefix: 'LED' }
+                        ],
+                        optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e']
+                    });
+                    
+                    statusDiv.innerText = "Status: Łączenie...";
+                    const server = await device.gatt.connect();
+                    const service = await server.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e');
+                    ledChar = await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');
+                }
+
+                statusDiv.innerText = `Status: Wysyłanie serii kodów (${type})...`;
+                
+                const selectedCodes = codes[type];
+                
+                for (let hex of selectedCodes) {
+                    const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+                    // Wysyłamy i czekamy chwilkę między kodami
+                    await ledChar.writeValueWithoutResponse(bytes);
+                    await new Promise(r => setTimeout(r, 100)); 
+                }
+                
+                statusDiv.innerText = "Status: Wszystkie kody wysłane!";
+            } catch (err) {
+                statusDiv.innerText = "Błąd: " + err;
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>
