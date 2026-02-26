@@ -1,157 +1,852 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LED Ultra Controller</title>
-    <style>
-        :root { --bg: #0f0f12; --card: #1e1e24; --accent: #7b2ffb; --text: #ffffff; }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding-bottom: 80px; text-align: center; }
-        
-        /* Menu dolne */
-        .navbar { position: fixed; bottom: 0; width: 100%; background: var(--card); display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #333; }
-        .nav-item { color: #888; font-size: 12px; cursor: pointer; display: flex; flex-direction: column; }
-        .nav-item.active { color: var(--accent); font-weight: bold; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LED Control">
+<title>LED BLE Controller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07070d;
+    --bg2: #0e0e1a;
+    --bg3: #14142a;
+    --glass: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.08);
+    --accent: #ff3cac;
+    --accent2: #784ba0;
+    --accent3: #2b86c5;
+    --text: #e8e8ff;
+    --muted: rgba(232,232,255,0.45);
+    --success: #00ffb3;
+    --warn: #ffb300;
+    --radius: 16px;
+    --font: 'Rajdhani', sans-serif;
+    --mono: 'Share Tech Mono', monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; background:var(--bg); color:var(--text); font-family:var(--font); overflow:hidden; }
 
-        /* Zakładki */
-        .page { display: none; padding: 20px; animation: fadeIn 0.3s; }
-        .page.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  /* Animated background */
+  body::before {
+    content:''; position:fixed; inset:0; z-index:0;
+    background: radial-gradient(ellipse at 20% 20%, rgba(255,60,172,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(43,134,197,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 50%, rgba(120,75,160,0.05) 0%, transparent 70%);
+    animation: bgpulse 8s ease-in-out infinite alternate;
+  }
+  @keyframes bgpulse { 0%{opacity:.6} 100%{opacity:1} }
 
-        .card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        button { background: var(--accent); color: white; border: none; padding: 15px; border-radius: 12px; width: 100%; font-weight: bold; margin: 10px 0; cursor: pointer; }
-        #log { background: #000; color: #0f0; font-family: monospace; font-size: 10px; height: 80px; overflow-y: auto; text-align: left; padding: 10px; border-radius: 10px; }
-        input[type="color"] { width: 100%; height: 50px; border-radius: 10px; border: none; background: none; cursor: pointer; }
-    </style>
+  #app { position:relative; z-index:1; height:100%; display:flex; flex-direction:column; max-width:480px; margin:0 auto; }
+
+  /* Header */
+  header {
+    padding:14px 20px 10px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid var(--border);
+    backdrop-filter:blur(20px);
+    background:rgba(7,7,13,0.8);
+  }
+  .logo { font-size:1.5rem; font-weight:700; letter-spacing:3px; text-transform:uppercase;
+    background:linear-gradient(90deg,var(--accent),var(--accent3));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  #statusBadge {
+    font-family:var(--mono); font-size:0.65rem; padding:4px 10px; border-radius:20px;
+    background:rgba(255,255,255,0.06); border:1px solid var(--border);
+    color:var(--muted); transition:all .4s; white-space:nowrap;
+  }
+  #statusBadge.connected { color:var(--success); border-color:rgba(0,255,179,0.3); background:rgba(0,255,179,0.08); }
+  #statusBadge.connecting { color:var(--warn); border-color:rgba(255,179,0,0.3); animation:blink 1s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* Quick Power Bar */
+  #powerBar {
+    display:flex; gap:10px; padding:12px 16px;
+    border-bottom:1px solid var(--border);
+  }
+  .pwr-btn {
+    flex:1; padding:12px; border:none; border-radius:12px; cursor:pointer;
+    font-family:var(--font); font-size:1rem; font-weight:700; letter-spacing:2px;
+    text-transform:uppercase; transition:all .2s; position:relative; overflow:hidden;
+  }
+  .pwr-btn::after { content:''; position:absolute; inset:0; background:rgba(255,255,255,0); transition:.2s; }
+  .pwr-btn:active::after { background:rgba(255,255,255,0.1); }
+  #btnOn { background:linear-gradient(135deg,#00ffb3,#00c97a); color:#002a18; }
+  #btnOff { background:rgba(255,60,100,0.15); color:#ff3c64; border:1px solid rgba(255,60,100,0.3); }
+  #btnConnect {
+    background:linear-gradient(135deg,var(--accent2),var(--accent3));
+    color:white; flex:0 0 auto; padding:12px 18px;
+  }
+
+  /* Tabs */
+  nav {
+    display:flex; border-bottom:1px solid var(--border);
+    background:rgba(7,7,13,0.6); backdrop-filter:blur(10px);
+  }
+  .tab-btn {
+    flex:1; padding:10px 4px; border:none; background:none; color:var(--muted);
+    font-family:var(--font); font-size:.85rem; font-weight:600; letter-spacing:1.5px;
+    text-transform:uppercase; cursor:pointer; transition:all .25s; position:relative;
+  }
+  .tab-btn.active { color:var(--text); }
+  .tab-btn.active::after {
+    content:''; position:absolute; bottom:0; left:20%; right:20%; height:2px;
+    background:linear-gradient(90deg,var(--accent),var(--accent3)); border-radius:2px;
+  }
+
+  /* Content */
+  #content { flex:1; overflow-y:auto; overflow-x:hidden; scroll-behavior:smooth; }
+  #content::-webkit-scrollbar { width:3px; }
+  #content::-webkit-scrollbar-track { background:transparent; }
+  #content::-webkit-scrollbar-thumb { background:var(--accent2); border-radius:2px; }
+
+  .tab-panel { display:none; padding:16px; animation:fadeIn .3s ease; }
+  .tab-panel.active { display:block; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  /* Glass card */
+  .card {
+    background:var(--glass); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px; margin-bottom:14px; backdrop-filter:blur(10px);
+  }
+  .card-title { font-size:.7rem; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; font-family:var(--mono); }
+
+  /* Color Wheel */
+  #colorCanvas { display:block; margin:0 auto; cursor:crosshair; border-radius:50%;
+    box-shadow:0 0 40px rgba(255,60,172,0.2); touch-action:none; }
+  #colorPreview {
+    width:60px; height:60px; border-radius:50%; margin:12px auto 0;
+    border:3px solid var(--border); box-shadow:0 0 20px currentColor;
+    transition:background .1s; position:relative;
+  }
+  #colorPreview::after { content:''; position:absolute; inset:4px; border-radius:50%; background:rgba(0,0,0,0.3); }
+
+  /* Brightness slider */
+  .slider-wrap { margin-top:10px; }
+  .slider-label { display:flex; justify-content:space-between; font-size:.75rem; color:var(--muted); margin-bottom:6px; font-family:var(--mono); }
+  input[type=range] {
+    width:100%; -webkit-appearance:none; height:6px; border-radius:3px;
+    background:linear-gradient(90deg,var(--bg3),var(--accent)); outline:none; cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none; width:20px; height:20px; border-radius:50%;
+    background:white; box-shadow:0 0 10px rgba(255,60,172,0.6); cursor:pointer;
+  }
+
+  /* RGB Manual */
+  .rgb-row { display:flex; gap:8px; margin-top:10px; }
+  .rgb-input-wrap { flex:1; }
+  .rgb-input-wrap label { font-size:.65rem; letter-spacing:2px; color:var(--muted); font-family:var(--mono); display:block; margin-bottom:4px; }
+  .rgb-input-wrap input[type=number] {
+    width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:8px;
+    color:var(--text); font-family:var(--mono); font-size:1rem; padding:8px;
+    text-align:center; outline:none;
+  }
+  .rgb-input-wrap input:focus { border-color:var(--accent); }
+
+  /* Animations grid */
+  .anim-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .anim-btn {
+    aspect-ratio:1; border:1px solid var(--border); border-radius:10px;
+    background:var(--glass); color:var(--text); font-family:var(--mono); font-size:.6rem;
+    cursor:pointer; transition:all .2s; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:2px; text-align:center;
+    line-height:1.2; padding:4px;
+  }
+  .anim-btn:hover, .anim-btn.active { background:rgba(120,75,160,0.3); border-color:var(--accent2); color:white; }
+  .anim-btn span.ico { font-size:1.1rem; }
+  .anim-btn:active { transform:scale(.95); }
+
+  /* Schedule */
+  .schedule-item {
+    display:flex; align-items:center; gap:10px; padding:10px 12px;
+    background:var(--bg3); border-radius:10px; margin-bottom:8px; border:1px solid var(--border);
+  }
+  .schedule-item input[type=time] {
+    background:none; border:none; color:var(--text); font-family:var(--mono); font-size:1.1rem; outline:none; flex:1;
+  }
+  .sched-toggle { width:36px; height:20px; border-radius:10px; border:none; cursor:pointer; position:relative; flex-shrink:0; background:var(--bg2); }
+  .sched-toggle.on { background:linear-gradient(135deg,var(--success),#00c97a); }
+  .sched-toggle::after { content:''; position:absolute; top:3px; left:3px; width:14px; height:14px; border-radius:50%; background:white; transition:.2s; }
+  .sched-toggle.on::after { left:19px; }
+  .btn-sm {
+    padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:var(--glass);
+    color:var(--text); font-family:var(--font); font-size:.8rem; cursor:pointer; letter-spacing:1px;
+  }
+  .btn-sm:hover { background:rgba(120,75,160,0.2); }
+  .btn-sm.danger { color:#ff3c64; border-color:rgba(255,60,100,0.3); }
+
+  /* Settings */
+  .setting-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); }
+  .setting-row:last-child { border-bottom:none; }
+  .setting-label { font-size:.9rem; color:var(--text); }
+  .setting-sub { font-size:.7rem; color:var(--muted); margin-top:2px; font-family:var(--mono); }
+
+  /* Toast */
+  #toast {
+    position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:rgba(14,14,26,0.95); border:1px solid var(--border); border-radius:30px;
+    padding:8px 20px; font-family:var(--mono); font-size:.8rem; color:var(--text);
+    opacity:0; transition:all .3s; z-index:999; pointer-events:none; white-space:nowrap;
+    backdrop-filter:blur(20px);
+  }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* Log */
+  #logBox {
+    font-family:var(--mono); font-size:.65rem; color:var(--muted);
+    background:var(--bg3); border-radius:8px; padding:10px; height:100px;
+    overflow-y:auto; line-height:1.6; border:1px solid var(--border);
+  }
+  .log-ok { color:var(--success); }
+  .log-err { color:#ff3c64; }
+  .log-info { color:var(--accent3); }
+
+  /* Responsive tweaks */
+  @media(min-width:400px) { .anim-grid { grid-template-columns:repeat(5,1fr); } }
+
+  /* PWA install bar */
+  #installBar {
+    display:none; align-items:center; gap:10px; padding:8px 16px;
+    background:linear-gradient(90deg,rgba(120,75,160,0.2),rgba(43,134,197,0.2));
+    border-bottom:1px solid var(--border); font-size:.8rem;
+  }
+  #installBar.show { display:flex; }
+  #installBar button { margin-left:auto; flex-shrink:0; }
+</style>
 </head>
 <body>
+<div id="app">
+  <!-- Install PWA bar -->
+  <div id="installBar">
+    <span>📲</span>
+    <span style="flex:1">Dodaj do ekranu głównego</span>
+    <button class="btn-sm" id="installBtn">Instaluj</button>
+    <button class="btn-sm" id="installDismiss">✕</button>
+  </div>
 
-    <div id="home" class="page active">
-        <h2>Mój Pilot LED</h2>
-        <div class="card">
-            <button onclick="initBT()" style="background: #27ae60;">POŁĄCZ Z URZĄDZENIEM</button>
-            <p id="status">Status: Rozłączony</p>
+  <header>
+    <div class="logo">LED⚡PRO</div>
+    <div id="statusBadge">ROZŁĄCZONY</div>
+  </header>
+
+  <div id="powerBar">
+    <button class="pwr-btn" id="btnOn" onclick="sendOn()">ON</button>
+    <button class="pwr-btn" id="btnOff" onclick="sendOff()">OFF</button>
+    <button class="pwr-btn" id="btnConnect" onclick="connectBLE()">🔵 BLE</button>
+  </div>
+
+  <nav>
+    <button class="tab-btn active" data-tab="control">Kolor</button>
+    <button class="tab-btn" data-tab="animations">Animacje</button>
+    <button class="tab-btn" data-tab="schedule">Alarm</button>
+    <button class="tab-btn" data-tab="settings">Ustawienia</button>
+  </nav>
+
+  <div id="content">
+    <!-- CONTROL TAB -->
+    <div class="tab-panel active" id="tab-control">
+      <div class="card">
+        <div class="card-title">🎨 Koło kolorów</div>
+        <canvas id="colorCanvas" width="240" height="240"></canvas>
+        <div id="colorPreview" style="background:#ff0000"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">☀️ Jasność</div>
+        <div class="slider-wrap">
+          <div class="slider-label"><span>Jasność</span><span id="brightnessVal">100%</span></div>
+          <input type="range" id="brightnessSlider" min="0" max="100" value="100">
         </div>
-
-        <div class="card">
-            <h3>Główne sterowanie</h3>
-            <button style="background: #2ecc71;" onclick="sendAll('ON')">WŁĄCZ (Wyślij serię)</button>
-            <button style="background: #e74c3c;" onclick="sendAll('OFF')">WYŁĄCZ (Wyślij serię)</button>
+        <div class="slider-wrap" style="margin-top:12px">
+          <div class="slider-label"><span>Temperatura bieli</span><span id="tempVal">–</span></div>
+          <input type="range" id="tempSlider" min="0" max="100" value="50">
         </div>
-
-        <div class="card">
-            <h3>Wybierz Kolor</h3>
-            <input type="color" oninput="changeColor(this.value)">
+      </div>
+      <div class="card">
+        <div class="card-title">🔢 RGB ręcznie</div>
+        <div class="rgb-row">
+          <div class="rgb-input-wrap">
+            <label>R</label>
+            <input type="number" id="inR" min="0" max="255" value="255">
+          </div>
+          <div class="rgb-input-wrap">
+            <label>G</label>
+            <input type="number" id="inG" min="0" max="255" value="0">
+          </div>
+          <div class="rgb-input-wrap">
+            <label>B</label>
+            <input type="number" id="inB" min="0" max="255" value="0">
+          </div>
         </div>
-
-        <div id="log">Czekam na połączenie...</div>
+        <button class="pwr-btn" style="width:100%;margin-top:10px;background:linear-gradient(135deg,var(--accent),var(--accent3));color:white" onclick="sendFromRGBInputs()">WYŚLIJ RGB</button>
+      </div>
     </div>
 
-    <div id="anim" class="page">
-        <h2>Animacje i Efekty</h2>
-        <div class="card">
-            <p>Wybierz efekt (wysyła serię kodów):</p>
-            <button onclick="sendAll('RAINBOW')">Tęcza / Przepływ</button>
-            <button onclick="sendAll('FLASH')">Stroboskop</button>
-        </div>
+    <!-- ANIMATIONS TAB -->
+    <div class="tab-panel" id="tab-animations">
+      <div class="card">
+        <div class="card-title">⭐ Szybkie efekty</div>
+        <div class="anim-grid" id="quickAnimGrid"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🔢 Wszystkie tryby (0x01–0x64)</div>
+        <div class="anim-grid" id="animGrid"></div>
+      </div>
     </div>
 
-    <div id="timer" class="page">
-        <h2>Budzik / Harmonogram</h2>
-        <div class="card">
-            <p>Wkrótce: Automatyczne włączanie o 6:56</p>
-            <input type="time" id="alarmTime" value="06:56">
-            <button disabled>Ustaw Budzik (Wymaga aktywnej karty)</button>
-        </div>
+    <!-- SCHEDULE TAB -->
+    <div class="tab-panel" id="tab-schedule">
+      <div class="card">
+        <div class="card-title">⏰ Harmonogram / Budzik</div>
+        <div id="scheduleList"></div>
+        <button class="pwr-btn" style="width:100%;margin-top:8px;background:linear-gradient(135deg,var(--accent2),var(--accent3));color:white" onclick="addSchedule()">+ DODAJ ALARM</button>
+      </div>
+      <div class="card">
+        <div class="card-title">ℹ️ Info</div>
+        <p style="font-size:.8rem;color:var(--muted);line-height:1.6">Alarmy działają gdy karta przeglądarki jest otwarta. O wybranej godzinie taśma LED włączy się efektem "Wschód słońca".</p>
+      </div>
     </div>
 
-    <nav class="navbar">
-        <div class="nav-item active" onclick="showPage('home')">🏠<span>Pilot</span></div>
-        <div class="nav-item" onclick="showPage('anim')">✨<span>Efekty</span></div>
-        <div class="nav-item" onclick="showPage('timer')">⏰<span>Czas</span></div>
-    </nav>
+    <!-- SETTINGS TAB -->
+    <div class="tab-panel" id="tab-settings">
+      <div class="card">
+        <div class="card-title">⚙️ Ustawienia</div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Auto-reconnect</div>
+            <div class="setting-sub">Ponów połączenie po rozłączeniu</div>
+          </div>
+          <input type="checkbox" id="autoReconnect" checked style="width:18px;height:18px;accent-color:var(--accent)">
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Heartbeat (co 10s)</div>
+            <div class="setting-sub">Wysyła 0x00 by utrzymać połączenie</div>
+          </div>
+          <input type="checkbox" id="heartbeatEnabled" checked style="width:18px;height:18px;accent-color:var(--accent)">
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Multi-protocol burst</div>
+            <div class="setting-sub">Wysyła do 4 protokołów jednocześnie</div>
+          </div>
+          <input type="checkbox" id="multiProto" checked style="width:18px;height:18px;accent-color:var(--accent)">
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Throttle (ms)</div>
+            <div class="setting-sub">Min. czas między pakietami</div>
+          </div>
+          <select id="throttleMs" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px;font-family:var(--mono)">
+            <option value="30">30ms</option>
+            <option value="50" selected>50ms</option>
+            <option value="100">100ms</option>
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📡 Service UUID</div>
+        <div style="font-family:var(--mono);font-size:.65rem;color:var(--accent3);word-break:break-all">6e400001-b5a3-f393-e0a9-e50e24dcca9e</div>
+        <div style="font-family:var(--mono);font-size:.65rem;color:var(--accent3);word-break:break-all;margin-top:4px">6e400002-b5a3-f393-e0a9-e50e24dcca9e</div>
+      </div>
+      <div class="card">
+        <div class="card-title">📋 Log BLE</div>
+        <div id="logBox"></div>
+      </div>
+      <div class="card">
+        <button class="btn-sm danger" onclick="clearStorage()" style="width:100%">🗑 Wyczyść dane lokalne</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-    <script>
-        let ledChar = null;
+<div id="toast"></div>
 
-        // BAZA WSZYSTKICH KODÓW (HiLighting, ELK, FB Protocol)
-        const MASTER_CODES = {
-            ON: ['fbeb0101', '7e0404010005ff00', '7e00040100000000', '5501010100', 'aa01010100'],
-            OFF: ['fbeb0100', '7e0404000005ff00', '7e00040000000000', '5501010000', 'aa01010000'],
-            RAINBOW: ['fbeb0301', '7e05030100000000', '55020101']
-        };
+<script>
+// ===================== STATE =====================
+let device = null, server = null, characteristic = null;
+let heartbeatTimer = null, reconnectTimer = null;
+let currentR = 255, currentG = 0, currentB = 0;
+let lastSendTime = 0;
+let schedules = [];
+let activeAnimBtn = null;
 
-        function showPage(id) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        }
+const SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+const CHAR_UUID    = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
 
-        function updateLog(msg) {
-            const l = document.getElementById('log');
-            l.innerHTML += `> ${msg}<br>`;
-            l.scrollTop = l.scrollHeight;
-        }
-
-        async function initBT() {
-            try {
-                const device = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
-                    optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e']
-                });
-                const server = await device.gatt.connect();
-                const service = await server.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e');
-                ledChar = await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');
-                document.getElementById('status').innerText = "✅ Połączono: " + device.name;
-                updateLog("Połączono z " + device.name);
-            } catch (e) { updateLog("Błąd: " + e.message); }
-        }
-
-        async function sendAll(type) {
-            if (!ledChar) { alert("Najpierw połącz!"); return; }
-            updateLog(`Wysyłam serię ${type}...`);
-            for (let hex of MASTER_CODES[type]) {
-                await writeRaw(hex);
-                await new Promise(r => setTimeout(r, 100)); // Mała przerwa między kodami
-            }
-        }
-
-async function changeColor(hex) {
-    if (!ledChar) return;
-    
-    // Wyciągamy składowe R, G, B z hex (np. #ff0000 -> ff, 00, 00)
-    let r = hex.substring(1,3);
-    let g = hex.substring(3,5);
-    let b = hex.substring(5,7);
-    
-    updateLog(`Zmiana koloru na RGB: ${r},${g},${b}`);
-
-    // FORMAT 1: Nowy (FB Protocol - fbeb05 + RGB)
-    await writeRaw(`fbeb05${r}${g}${b}`);
-    
-    // FORMAT 2: Klasyczny (7e070503 + RGB + 00ef)
-    await writeRaw(`7e070503${r}${g}${b}00ef`);
-    
-    // FORMAT 3: Alternatywny (550502 + RGB + opcjonalna suma kontrolna)
-    await writeRaw(`550502${r}${g}${b}`);
-    
-    // FORMAT 4: Uproszczony (Dla niektórych sterowników ELK)
-    await writeRaw(`01${r}${g}${b}`);
+// ===================== LOCAL STORAGE =====================
+function loadState() {
+  try {
+    const c = JSON.parse(localStorage.getItem('led_color') || 'null');
+    if (c) { currentR=c.r; currentG=c.g; currentB=c.b; }
+    schedules = JSON.parse(localStorage.getItem('led_schedules') || '[]');
+  } catch(e) {}
+}
+function saveColor() {
+  localStorage.setItem('led_color', JSON.stringify({r:currentR,g:currentG,b:currentB}));
+}
+function saveSchedules() {
+  localStorage.setItem('led_schedules', JSON.stringify(schedules));
+}
+function clearStorage() {
+  localStorage.clear(); toast('Dane wyczyszczone'); schedules=[]; renderSchedules();
 }
 
-        async function writeRaw(hex) {
-            try {
-                const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
-                try {
-                    await ledChar.writeValueWithoutResponse(bytes);
-                } catch (e) {
-                    await ledChar.writeValueWithResponse(bytes);
-                }
-                updateLog("Sukces: " + hex);
-            } catch (e) {
-                updateLog("Pominięto: " + hex);
-            }
-        }
-    </script>
+// ===================== LOG =====================
+function log(msg, type='info') {
+  const box = document.getElementById('logBox');
+  const t = new Date().toLocaleTimeString('pl-PL');
+  const div = document.createElement('div');
+  div.className = 'log-'+type;
+  div.textContent = `[${t}] ${msg}`;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+  // keep max 80 lines
+  while(box.children.length > 80) box.removeChild(box.firstChild);
+}
+
+// ===================== TOAST =====================
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 2500);
+}
+
+// ===================== STATUS =====================
+function setStatus(text, cls='') {
+  const el = document.getElementById('statusBadge');
+  el.textContent = text;
+  el.className = cls;
+}
+
+// ===================== BLE CONNECT =====================
+async function connectBLE() {
+  if (!navigator.bluetooth) {
+    toast('⚠️ Web Bluetooth niedostępny'); log('Web Bluetooth API nie jest wspierane','err'); return;
+  }
+  try {
+    setStatus('ŁĄCZENIE...','connecting');
+    log('Szukam urządzeń BLE...','info');
+    device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [SERVICE_UUID]
+    });
+    device.addEventListener('gattserverdisconnected', onDisconnected);
+    await doConnect();
+  } catch(e) {
+    log('Błąd: '+e.message,'err');
+    setStatus('BŁĄD','');
+    toast('❌ '+e.message);
+  }
+}
+
+async function doConnect() {
+  try {
+    log('Łączę z GATT...','info');
+    server = await device.gatt.connect();
+    log('Szukam serwisu...','info');
+    const service = await server.getPrimaryService(SERVICE_UUID);
+    log('Szukam charakterystyki...','info');
+    characteristic = await service.getCharacteristic(CHAR_UUID);
+    setStatus('✓ '+device.name,'connected');
+    log('Połączono z: '+(device.name||'Nieznane'),'ok');
+    toast('✅ Połączono!');
+    localStorage.setItem('led_deviceId', device.id);
+    startHeartbeat();
+  } catch(e) {
+    log('Błąd połączenia: '+e.message,'err');
+    setStatus('BŁĄD','');
+    toast('❌ '+e.message);
+  }
+}
+
+function onDisconnected() {
+  log('Rozłączono!','err');
+  setStatus('ROZŁĄCZONY','');
+  characteristic = null;
+  stopHeartbeat();
+  if (document.getElementById('autoReconnect').checked) {
+    log('Auto-reconnect za 3s...','info');
+    toast('🔄 Ponawiam połączenie...');
+    reconnectTimer = setTimeout(async ()=>{
+      if(device) {
+        try { await doConnect(); } catch(e){ log('Auto-reconnect fail: '+e.message,'err'); }
+      }
+    }, 3000);
+  }
+}
+
+// ===================== WRITE =====================
+async function writeBytes(bytes) {
+  if (!characteristic) { log('Brak połączenia','err'); return false; }
+  try {
+    const data = new Uint8Array(bytes);
+    try { await characteristic.writeValueWithoutResponse(data); }
+    catch { await characteristic.writeValueWithResponse(data); }
+    return true;
+  } catch(e) {
+    log('Błąd zapisu: '+e.message,'err');
+    return false;
+  }
+}
+
+// ===================== PROTOCOL BUILDER =====================
+function buildPackets(cmd, r, g, b) {
+  const packets = [];
+  if (document.getElementById('multiProto').checked) {
+    // Protocol A: FB / HiLighting
+    packets.push([0xfb, 0xeb, cmd, r, g, b]);
+    // Protocol B: Classic 7e ... ef
+    packets.push([0x7e, 0x07, 0x05, 0x03, r, g, b, 0x00, 0xef]);
+    // Protocol C: Trinary 55
+    packets.push([0x55, cmd, r, g, b, 0x00, 0x00, 0x00]);
+    // Protocol D: ELK raw
+    packets.push([r, g, b]);
+  } else {
+    // Just Protocol B as default
+    packets.push([0x7e, 0x07, 0x05, 0x03, r, g, b, 0x00, 0xef]);
+  }
+  return packets;
+}
+
+function buildAnimPackets(animByte) {
+  const packets = [];
+  // Protocol B: animation/mode
+  packets.push([0x7e, 0x05, 0x03, animByte, 0x03, 0x00, 0x00, 0x00, 0xef]);
+  // Protocol A
+  packets.push([0xfb, 0xeb, 0x04, animByte, 0x03, 0x00]);
+  // Protocol C
+  packets.push([0x55, 0x04, animByte, 0x03, 0x00, 0x00, 0x00, 0x00]);
+  return packets;
+}
+
+// ===================== THROTTLED SEND =====================
+async function sendColor(r, g, b) {
+  const now = Date.now();
+  const throttle = parseInt(document.getElementById('throttleMs').value);
+  if (now - lastSendTime < throttle) return;
+  lastSendTime = now;
+  const packets = buildPackets(0x05, r, g, b);
+  for (const pkt of packets) await writeBytes(pkt);
+}
+
+// ===================== ON / OFF =====================
+async function sendOn() {
+  if (!characteristic) { toast('⚠️ Nie połączono!'); return; }
+  const pkts = [
+    [0x7e, 0x04, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0xef],
+    [0xfb, 0xeb, 0x04, 0x01, 0x00, 0x00],
+    [0x55, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00],
+    [0xcc, 0x23, 0x33]
+  ];
+  for(const p of pkts) await writeBytes(p);
+  log('ON wyslano','ok'); toast('💡 ON');
+}
+
+async function sendOff() {
+  if (!characteristic) { toast('⚠️ Nie połączono!'); return; }
+  const pkts = [
+    [0x7e, 0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xef],
+    [0xfb, 0xeb, 0x04, 0x00, 0x00, 0x00],
+    [0x55, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+    [0xcc, 0x24, 0x33]
+  ];
+  for(const p of pkts) await writeBytes(p);
+  log('OFF wyslano','ok'); toast('🌑 OFF');
+}
+
+// ===================== HEARTBEAT =====================
+function startHeartbeat() {
+  stopHeartbeat();
+  heartbeatTimer = setInterval(async ()=>{
+    if (!document.getElementById('heartbeatEnabled').checked) return;
+    if (characteristic) {
+      try { await writeBytes([0x00]); } catch(e){}
+    }
+  }, 10000);
+}
+function stopHeartbeat() {
+  clearInterval(heartbeatTimer); heartbeatTimer = null;
+}
+
+// ===================== COLOR WHEEL =====================
+function drawColorWheel(canvas) {
+  const ctx = canvas.getContext('2d');
+  const cx = canvas.width/2, cy = canvas.height/2, r = cx - 2;
+  for (let angle=0; angle<360; angle++) {
+    const startAngle = (angle-1) * Math.PI/180;
+    const endAngle = (angle+1) * Math.PI/180;
+    for (let ri=0; ri<=r; ri+=2) {
+      const sat = ri/r * 100;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(startAngle)*(ri-2), cy + Math.sin(startAngle)*(ri-2));
+      ctx.arc(cx, cy, ri, startAngle, endAngle);
+      ctx.closePath();
+      ctx.fillStyle = `hsl(${angle},${sat}%,50%)`;
+      ctx.fill();
+    }
+  }
+}
+
+function hslToRgb(h, s, l) {
+  s/=100; l/=100;
+  const k = n => (n+h/30)%12;
+  const a = s*Math.min(l,1-l);
+  const f = n => l - a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
+  return [Math.round(f(0)*255), Math.round(f(8)*255), Math.round(f(4)*255)];
+}
+
+function initColorWheel() {
+  const canvas = document.getElementById('colorCanvas');
+  const size = Math.min(window.innerWidth - 64, 260);
+  canvas.width = canvas.height = size;
+  drawColorWheel(canvas);
+
+  let picking = false;
+  function pick(e) {
+    if (!picking && e.type === 'mousemove') return;
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.clientX||e.touches[0].clientX, cy = e.clientY||e.touches[0].clientY;
+    const x = cx - rect.left - canvas.width/2;
+    const y = cy - rect.top - canvas.height/2;
+    const dist = Math.sqrt(x*x+y*y), maxR = canvas.width/2-2;
+    if (dist > maxR) return;
+    const angle = ((Math.atan2(y,x)*180/Math.PI)+360)%360;
+    const sat = dist/maxR*100;
+    const [r,g,b] = hslToRgb(angle, sat, 50);
+    const bright = parseInt(document.getElementById('brightnessSlider').value)/100;
+    currentR = Math.round(r*bright);
+    currentG = Math.round(g*bright);
+    currentB = Math.round(b*bright);
+    updateColorUI();
+    sendColor(currentR, currentG, currentB);
+  }
+  canvas.addEventListener('mousedown', ()=>picking=true);
+  canvas.addEventListener('mouseup', ()=>picking=false);
+  canvas.addEventListener('mousemove', pick);
+  canvas.addEventListener('touchstart', e=>{picking=true; pick(e); e.preventDefault();},{passive:false});
+  canvas.addEventListener('touchend', ()=>picking=false);
+  canvas.addEventListener('touchmove', e=>{pick(e); e.preventDefault();},{passive:false});
+}
+
+function updateColorUI() {
+  const hex = '#'+[currentR,currentG,currentB].map(v=>v.toString(16).padStart(2,'0')).join('');
+  document.getElementById('colorPreview').style.background = hex;
+  document.getElementById('inR').value = currentR;
+  document.getElementById('inG').value = currentG;
+  document.getElementById('inB').value = currentB;
+  saveColor();
+}
+
+document.getElementById('brightnessSlider').addEventListener('input', function() {
+  document.getElementById('brightnessVal').textContent = this.value+'%';
+  // Re-send current color with new brightness applied at wheel level (color values already scaled)
+  sendColor(currentR, currentG, currentB);
+});
+
+document.getElementById('tempSlider').addEventListener('input', function() {
+  const v = this.value; // 0=warm 100=cold
+  document.getElementById('tempVal').textContent = (v<33?'Ciepły':v<66?'Neutralny':'Zimny');
+  // Warm white to cool white
+  const r = Math.round(255 - v*0.8);
+  const g = Math.round(255 - Math.abs(v-50)*1);
+  const b = Math.round(v*2.55);
+  sendColor(r,g,b);
+});
+
+function sendFromRGBInputs() {
+  currentR = Math.max(0,Math.min(255,parseInt(document.getElementById('inR').value)||0));
+  currentG = Math.max(0,Math.min(255,parseInt(document.getElementById('inG').value)||0));
+  currentB = Math.max(0,Math.min(255,parseInt(document.getElementById('inB').value)||0));
+  updateColorUI();
+  sendColor(currentR, currentG, currentB);
+}
+
+// ===================== ANIMATIONS =====================
+const QUICK_ANIMS = [
+  {name:'🌈 Tęcza', byte:0x01},
+  {name:'💓 Puls', byte:0x25},
+  {name:'⚡ Strobe', byte:0x21},
+  {name:'🌊 Flow', byte:0x14},
+  {name:'🌅 Wschód', byte:0x04},
+  {name:'❄️ Lód', byte:0x0f},
+  {name:'🔥 Ogień', byte:0x09},
+  {name:'🌙 Neon', byte:0x1a},
+];
+
+function buildAnimGrid() {
+  // Quick anims
+  const qGrid = document.getElementById('quickAnimGrid');
+  QUICK_ANIMS.forEach(a => {
+    const btn = document.createElement('button');
+    btn.className = 'anim-btn';
+    const [ico, ...words] = a.name.split(' ');
+    btn.innerHTML = `<span class="ico">${ico}</span><span>${words.join(' ')}</span>`;
+    btn.onclick = () => { sendAnim(a.byte); setActiveAnim(btn); };
+    qGrid.appendChild(btn);
+  });
+
+  // Full grid 0x01–0x64
+  const grid = document.getElementById('animGrid');
+  for (let i=1; i<=0x64; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'anim-btn';
+    btn.textContent = '0x'+i.toString(16).padStart(2,'0').toUpperCase();
+    btn.dataset.byte = i;
+    btn.onclick = () => { sendAnim(i); setActiveAnim(btn); };
+    grid.appendChild(btn);
+  }
+}
+
+function setActiveAnim(btn) {
+  if(activeAnimBtn) activeAnimBtn.classList.remove('active');
+  activeAnimBtn = btn;
+  btn.classList.add('active');
+}
+
+async function sendAnim(byte) {
+  if (!characteristic) { toast('⚠️ Nie połączono!'); return; }
+  const pkts = buildAnimPackets(byte);
+  for(const p of pkts) await writeBytes(p);
+  log('Animacja: 0x'+byte.toString(16),'ok');
+  toast('🎬 Tryb 0x'+byte.toString(16).toUpperCase());
+}
+
+// Sunrise animation (for alarm)
+async function sunriseAnimation() {
+  await sendOn();
+  await delay(500);
+  // Slowly ramp from red→orange→yellow→white over 60s
+  const steps = 60;
+  for (let i=0; i<steps; i++) {
+    const t = i/steps;
+    const r = Math.round(255*Math.min(1, t*3));
+    const g = Math.round(255*Math.min(1, (t-0.2)*2.5));
+    const b = Math.round(255*Math.min(1, (t-0.5)*2));
+    await sendColor(Math.max(0,r), Math.max(0,g), Math.max(0,b));
+    await delay(1000);
+  }
+}
+function delay(ms) { return new Promise(r=>setTimeout(r,ms)); }
+
+// ===================== SCHEDULE =====================
+function renderSchedules() {
+  const list = document.getElementById('scheduleList');
+  list.innerHTML = '';
+  schedules.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'schedule-item';
+    row.innerHTML = `
+      <span style="font-size:1.3rem">⏰</span>
+      <input type="time" value="${s.time}" onchange="schedules[${i}].time=this.value;saveSchedules()">
+      <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:4px;font-family:var(--mono);font-size:.75rem"
+        onchange="schedules[${i}].action=this.value;saveSchedules()">
+        <option value="sunrise" ${s.action==='sunrise'?'selected':''}>🌅 Wschód</option>
+        <option value="on" ${s.action==='on'?'selected':''}>💡 ON</option>
+        <option value="off" ${s.action==='off'?'selected':''}>🌑 OFF</option>
+      </select>
+      <button class="sched-toggle ${s.enabled?'on':''}" onclick="toggleSchedule(${i},this)"></button>
+      <button class="btn-sm danger" onclick="removeSchedule(${i})">✕</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function addSchedule() {
+  const now = new Date();
+  const h = now.getHours().toString().padStart(2,'0');
+  const m = now.getMinutes().toString().padStart(2,'0');
+  schedules.push({time:`${h}:${m}`, action:'sunrise', enabled:false});
+  saveSchedules(); renderSchedules();
+}
+
+function removeSchedule(i) {
+  schedules.splice(i,1); saveSchedules(); renderSchedules();
+}
+
+function toggleSchedule(i, btn) {
+  schedules[i].enabled = !schedules[i].enabled;
+  btn.classList.toggle('on', schedules[i].enabled);
+  saveSchedules();
+  toast(schedules[i].enabled ? '⏰ Alarm aktywny' : '⏰ Alarm wyłączony');
+}
+
+// Check schedules every 30s
+let lastTriggered = {};
+setInterval(()=>{
+  if (!characteristic) return;
+  const now = new Date();
+  const hm = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  schedules.forEach((s,i)=>{
+    if (!s.enabled || s.time !== hm) return;
+    const key = i+'-'+hm;
+    if (lastTriggered[key]) return;
+    lastTriggered[key] = true;
+    log('Alarm! '+hm+' → '+s.action,'ok');
+    toast('⏰ Alarm: '+hm);
+    if (s.action==='sunrise') sunriseAnimation();
+    else if (s.action==='on') sendOn();
+    else sendOff();
+  });
+  // Clean old triggers
+  const keys = Object.keys(lastTriggered);
+  if (keys.length > 50) { keys.slice(0,25).forEach(k=>delete lastTriggered[k]); }
+}, 30000);
+
+// ===================== TABS =====================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ===================== PWA INSTALL =====================
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault(); deferredPrompt=e;
+  document.getElementById('installBar').classList.add('show');
+});
+document.getElementById('installBtn').onclick = async ()=>{
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') toast('✅ Zainstalowano!');
+  deferredPrompt=null;
+  document.getElementById('installBar').classList.remove('show');
+};
+document.getElementById('installDismiss').onclick = ()=>{
+  document.getElementById('installBar').classList.remove('show');
+};
+
+// ===================== INIT =====================
+loadState();
+initColorWheel();
+buildAnimGrid();
+renderSchedules();
+updateColorUI();
+log('LED PRO gotowy. Kliknij BLE by połączyć.','info');
+
+// Register minimal service worker for PWA
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    self.addEventListener('fetch', e => {
+      e.respondWith(fetch(e.request).catch(()=>new Response('Offline')));
+    });
+  `;
+  const blob = new Blob([swCode], {type:'application/javascript'});
+  const url = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(url).catch(()=>{});
+}
+</script>
 </body>
 </html>
