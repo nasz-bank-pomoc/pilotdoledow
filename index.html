@@ -116,13 +116,28 @@
             }
         }
 
-        async function changeColor(hex) {
-            if (!ledChar) return;
-            let r = hex.substring(1,3), g = hex.substring(3,5), b = hex.substring(5,7);
-            // Wysyłamy dwa najpopularniejsze formaty koloru na raz
-            await writeRaw(`fbeb05${r}${g}${b}`);
-            await writeRaw(`7e070503${r}${g}${b}00ef`);
-        }
+async function changeColor(hex) {
+    if (!ledChar) return;
+    
+    // Wyciągamy składowe R, G, B z hex (np. #ff0000 -> ff, 00, 00)
+    let r = hex.substring(1,3);
+    let g = hex.substring(3,5);
+    let b = hex.substring(5,7);
+    
+    updateLog(`Zmiana koloru na RGB: ${r},${g},${b}`);
+
+    // FORMAT 1: Nowy (FB Protocol - fbeb05 + RGB)
+    await writeRaw(`fbeb05${r}${g}${b}`);
+    
+    // FORMAT 2: Klasyczny (7e070503 + RGB + 00ef)
+    await writeRaw(`7e070503${r}${g}${b}00ef`);
+    
+    // FORMAT 3: Alternatywny (550502 + RGB + opcjonalna suma kontrolna)
+    await writeRaw(`550502${r}${g}${b}`);
+    
+    // FORMAT 4: Uproszczony (Dla niektórych sterowników ELK)
+    await writeRaw(`01${r}${g}${b}`);
+}
 
         async function writeRaw(hex) {
             try {
