@@ -3,60 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uniwersalny Pilot LED</title>
+    <title>Mój Pilot LED Pro</title>
     <style>
-        body { background: #121212; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
-        button { width: 100%; max-width: 300px; padding: 20px; margin: 10px; font-size: 18px; border-radius: 15px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .on { background: linear-gradient(45deg, #2ecc71, #27ae60); color: white; box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4); }
-        .off { background: linear-gradient(45deg, #e74c3c, #c0392b); color: white; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4); }
-        #status { margin-top: 20px; color: #aaa; font-size: 14px; }
+        body { background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
+        .btn-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        button { padding: 15px 25px; font-size: 16px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; min-width: 120px; }
+        .on { background: #27ae60; color: white; }
+        .off { background: #c0392b; color: white; }
+        .red { background: #ff4d4d; } .green { background: #2ecc71; } .blue { background: #3498db; }
+        #log { background: #000; color: #0f0; padding: 15px; border-radius: 5px; text-align: left; font-family: monospace; height: 150px; overflow-y: auto; margin-top: 20px; font-size: 12px; border: 1px solid #333; }
     </style>
 </head>
 <body>
-    <h1>Multi-Pilot LED</h1>
-    <p>Ten przycisk wysyła wszystkie znane kody HiLighting na raz:</p>
+    <h1>🚀 Mój Pilot LED</h1>
     
-    <button class="on" onclick="sendAllCommands('ON')">WŁĄCZ WSZYSTKO</button>
-    <button class="off" onclick="sendAllCommands('OFF')">WYŁĄCZ WSZYSTKO</button>
+    <div class="btn-group">
+        <button class="on" onclick="runTest('ON')">WŁĄCZ</button>
+        <button class="off" onclick="runTest('OFF')">WYŁĄCZ</button>
+    </div>
 
-    <div id="status">Status: Gotowy</div>
+    <div class="btn-group">
+        <button class="red" onclick="sendSingle('7e070503ff000000ef')">CZERWONY</button>
+        <button class="green" onclick="sendSingle('7e07050300ff0000ef')">ZIELONY</button>
+        <button class="blue" onclick="sendSingle('7e0705030000ff00ef')">NIEBIESKI</button>
+    </div>
 
-<script>
+    <h3>Dziennik zdarzeń (Logi):</h3>
+    <div id="log">Czekam na akcję...</div>
+
+    <script>
         let ledChar = null;
 
         const codes = {
-            ON: ['7e0404010005ff00', '7e00040100000000', '5501010100', 'fbeb0101', '7e0404010000ff00'],
-            OFF: ['7e0404000005ff00', '7e00040000000000', '5501010000', 'fbeb0100', '7e0404000000ff00']
+            ON: ['7e0404010005ff00', '7e00040100000000', '5501010100', 'fbeb0101'],
+            OFF: ['7e0404000005ff00', '7e00040000000000', '5501010000', 'fbeb0100']
         };
 
-        async function sendAllCommands(type) {
-            const statusDiv = document.getElementById('status');
-            try {
-                if (!ledChar) {
-                    statusDiv.innerText = "Status: Szukanie WSZYSTKICH urządzeń...";
-                    
-                    // OPCJA BEZ FILTROWANIA - pokaże wszystko
-                    const device = await navigator.bluetooth.requestDevice({
-                        acceptAllDevices: true,
-                        optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e'] 
-                    });
-                    
-                    statusDiv.innerText = "Status: Łączenie...";
-                    const server = await device.gatt.connect();
-                    const service = await server.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e');
-                    ledChar = await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');
-                }
+        function writeLog(msg) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += `> ${msg}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
 
-                statusDiv.innerText = `Wysyłanie serii ${type}...`;
+        async function getChar() {
+            if (ledChar) return ledChar;
+            writeLog("Szukam urządzenia...");
+            const device = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e']
+            });
+            writeLog("Łączenie z " + device.name);
+            const server = await device.gatt.connect();
+            const service = await server.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e');
+            ledChar = await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');
+            return ledChar;
+        }
+
+        async function runTest(type) {
+            try {
+                const char = await getChar();
                 for (let hex of codes[type]) {
+                    writeLog(`Wysyłam kod ${type}: ${hex}`);
                     const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
-                    await ledChar.writeValueWithoutResponse(bytes);
-                    await new Promise(r => setTimeout(r, 150)); 
+                    await char.writeValueWithoutResponse(bytes);
+                    await new Promise(r => setTimeout(r, 300));
                 }
-                statusDiv.innerText = "Gotowe!";
-            } catch (err) {
-                statusDiv.innerText = "Błąd: " + err;
-            }
+            } catch (e) { writeLog("BŁĄD: " + e); }
+        }
+
+        async function sendSingle(hex) {
+            try {
+                const char = await getChar();
+                writeLog(`Wysyłam kolor: ${hex}`);
+                const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+                await char.writeValueWithoutResponse(bytes);
+            } catch (e) { writeLog("BŁĄD: " + e); }
         }
     </script>
 </body>
