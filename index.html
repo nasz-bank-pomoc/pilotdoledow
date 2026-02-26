@@ -21,33 +21,24 @@
 
     <div id="status">Status: Gotowy</div>
 
-    <script>
+<script>
         let ledChar = null;
 
-        // Lista wszystkich możliwych kodów dla HiLighting / ELK-BLEDOM
         const codes = {
-            ON: [
-                '7e0404010005ff00', '7e00040100000000', '5501010100', 
-                'fbeb0101', 'aa01010100', '7e0404010000ff00', '55010101'
-            ],
-            OFF: [
-                '7e0404000005ff00', '7e00040000000000', '5501010000', 
-                'fbeb0100', 'aa01010000', '7e0404000000ff00', '55010100'
-            ]
+            ON: ['7e0404010005ff00', '7e00040100000000', '5501010100', 'fbeb0101', '7e0404010000ff00'],
+            OFF: ['7e0404000005ff00', '7e00040000000000', '5501010000', 'fbeb0100', '7e0404000000ff00']
         };
 
         async function sendAllCommands(type) {
             const statusDiv = document.getElementById('status');
             try {
                 if (!ledChar) {
-                    statusDiv.innerText = "Status: Szukanie urządzenia...";
+                    statusDiv.innerText = "Status: Szukanie WSZYSTKICH urządzeń...";
+                    
+                    // OPCJA BEZ FILTROWANIA - pokaże wszystko
                     const device = await navigator.bluetooth.requestDevice({
-                        filters: [
-                            { services: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e'] },
-                            { namePrefix: 'ELK' },
-                            { namePrefix: 'LED' }
-                        ],
-                        optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e']
+                        acceptAllDevices: true,
+                        optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e'] 
                     });
                     
                     statusDiv.innerText = "Status: Łączenie...";
@@ -56,21 +47,15 @@
                     ledChar = await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');
                 }
 
-                statusDiv.innerText = `Status: Wysyłanie serii kodów (${type})...`;
-                
-                const selectedCodes = codes[type];
-                
-                for (let hex of selectedCodes) {
+                statusDiv.innerText = `Wysyłanie serii ${type}...`;
+                for (let hex of codes[type]) {
                     const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
-                    // Wysyłamy i czekamy chwilkę między kodami
                     await ledChar.writeValueWithoutResponse(bytes);
-                    await new Promise(r => setTimeout(r, 100)); 
+                    await new Promise(r => setTimeout(r, 150)); 
                 }
-                
-                statusDiv.innerText = "Status: Wszystkie kody wysłane!";
+                statusDiv.innerText = "Gotowe!";
             } catch (err) {
                 statusDiv.innerText = "Błąd: " + err;
-                console.error(err);
             }
         }
     </script>
