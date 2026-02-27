@@ -184,7 +184,8 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);cursor:po
     <button class="tb on" data-tab="control">Kolor</button>
     <button class="tb" data-tab="anim">Animacje</button>
     <button class="tb" data-tab="sched">Alarm</button>
-    <button class="tb" data-tab="set">Ustawienia</button>
+    <button class="tb" data-tab="set">⚙️</button>
+    <button class="tb" data-tab="debug" style="color:#ffb300">🔧</button>
   </nav>
 
   <div id="content">
@@ -290,8 +291,82 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);cursor:po
         <button class="bsm d" style="width:100%" onclick="clearAll()">🗑 Wyczyść dane lokalne</button>
       </div>
     </div>
-  </div>
-</div>
+
+    <!-- DEBUG PANEL -->
+    <div class="panel" id="tab-debug">
+      <div class="notice" style="border-color:rgba(255,179,0,.4);background:rgba(255,179,0,.07)">
+        <strong>🔧 Jak używać:</strong> Połącz BLE, potem klikaj przyciski jeden po jednym i patrz czy LED reaguje. Gdy znajdziesz działający protokół — kliknij "✓ Protokół X" żeby go zapisać.
+      </div>
+      <div class="card">
+        <div class="ct">💡 Test ON/OFF — każdy protokół osobno</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <button class="dbtn" onclick="dbgSend('on','A')">ON — A<br><span>FB EB 04 01</span></button>
+          <button class="dbtn" onclick="dbgSend('on','B')">ON — B<br><span>7E 04 04 01 EF</span></button>
+          <button class="dbtn" onclick="dbgSend('on','C')">ON — C<br><span>55 F0 01</span></button>
+          <button class="dbtn" onclick="dbgSend('on','D')">ON — D<br><span>CC 23 33</span></button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="dbtn red" onclick="dbgSend('off','A')">OFF — A<br><span>FB EB 04 00</span></button>
+          <button class="dbtn red" onclick="dbgSend('off','B')">OFF — B<br><span>7E 04 04 00 EF</span></button>
+          <button class="dbtn red" onclick="dbgSend('off','C')">OFF — C<br><span>55 F0 00</span></button>
+          <button class="dbtn red" onclick="dbgSend('off','D')">OFF — D<br><span>CC 24 33</span></button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ct">🔴 Test koloru CZERWONY — każdy protokół</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="dbtn" onclick="dbgColor('A')">Kolor — A<br><span>FB EB 05 FF 00 00</span></button>
+          <button class="dbtn" onclick="dbgColor('B')">Kolor — B<br><span>7E 07 05 03 FF 00 00 EF</span></button>
+          <button class="dbtn" onclick="dbgColor('C')">Kolor — C<br><span>55 05 FF 00 00</span></button>
+          <button class="dbtn" onclick="dbgColor('D')">Kolor — D<br><span>FF 00 00 (raw)</span></button>
+          <button class="dbtn" onclick="dbgColor('E')">Kolor — E<br><span>56 FF 00 00 F0 AA</span></button>
+          <button class="dbtn" onclick="dbgColor('F')">Kolor — F<br><span>B0 FF 00 00</span></button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ct">🎬 Test animacji — każdy protokół</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="dbtn" onclick="dbgAnim('A')">Anim — A<br><span>FB EB 04 25 03 FF</span></button>
+          <button class="dbtn" onclick="dbgAnim('B')">Anim — B<br><span>7E 05 03 25 03 EF</span></button>
+          <button class="dbtn" onclick="dbgAnim('C')">Anim — C<br><span>55 F0 25</span></button>
+          <button class="dbtn" onclick="dbgAnim('D')">Anim — D<br><span>BB 25 44</span></button>
+          <button class="dbtn" onclick="dbgAnim('E')">Anim — E<br><span>38 25 03 00 00</span></button>
+          <button class="dbtn" onclick="dbgAnim('F')">Anim — F<br><span>61 25 0F 90</span></button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ct">✅ Zaznacz co działa</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+          <button class="dbtn sm" onclick="markProto('A')">✓ Proto A</button>
+          <button class="dbtn sm" onclick="markProto('B')">✓ Proto B</button>
+          <button class="dbtn sm" onclick="markProto('C')">✓ Proto C</button>
+          <button class="dbtn sm" onclick="markProto('D')">✓ Proto D</button>
+          <button class="dbtn sm" onclick="markProto('E')">✓ Proto E</button>
+          <button class="dbtn sm" onclick="markProto('F')">✓ Proto F</button>
+        </div>
+        <div id="protoResult" style="font-family:var(--m);font-size:.75rem;color:var(--ok);padding:4px 0"></div>
+      </div>
+      <div class="card">
+        <div class="ct">📋 Log debuggera</div>
+        <div id="dbgLog" style="font-family:var(--m);font-size:.6rem;color:var(--muted);background:var(--bg3);border-radius:8px;padding:8px;height:160px;overflow-y:auto;line-height:1.8;border:1px solid var(--border)"></div>
+        <button class="bsm" style="width:100%;margin-top:6px" onclick="document.getElementById('dbgLog').innerHTML=''">Wyczyść</button>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<style>
+.dbtn{border:1px solid var(--border);border-radius:10px;background:var(--glass);color:var(--text);
+  font-family:var(--m);font-size:.65rem;cursor:pointer;padding:10px 6px;line-height:1.5;
+  transition:all .15s;text-align:center;width:100%}
+.dbtn span{display:block;font-size:.55rem;color:var(--muted);margin-top:2px}
+.dbtn:hover{background:rgba(120,75,160,.3);border-color:var(--accent2)}
+.dbtn:active{transform:scale(.95)}
+.dbtn.red{color:var(--err);border-color:rgba(255,60,100,.25)}
+.dbtn.sm{padding:8px 4px;font-size:.62rem}
+.dbtn.active{background:rgba(0,255,179,.15);border-color:var(--ok);color:var(--ok)}
+</style>
 
 <div id="toast"></div>
 
@@ -920,6 +995,72 @@ buildAnimGrids();
 renderScheds();
 restoreAnimBtn();
 log('LED PRO v2 gotowy. Kliknij 🔵 BLE by połączyć.','inf');
+
+// ═══════════════════════ DEBUGGER ═════════════════════
+function dlog(msg, ok){
+  const box=document.getElementById('dbgLog');
+  const d=document.createElement('div');
+  d.style.color = ok===true ? 'var(--ok)' : ok===false ? 'var(--err)' : 'var(--accent3)';
+  d.textContent = '['+new Date().toLocaleTimeString('pl-PL')+'] '+msg;
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
+}
+
+async function dbgWr(bytes, label){
+  if(!btChar){ dlog('❌ Brak połączenia BLE!', false); toast('⚠️ Połącz BLE najpierw!'); return false; }
+  const hex = bytes.map(b=>'0x'+b.toString(16).toUpperCase().padStart(2,'0')).join(' ');
+  dlog(`→ [${label}] ${hex}`);
+  try{
+    const d = new Uint8Array(bytes);
+    try{ await btChar.writeValueWithoutResponse(d); }
+    catch{ await btChar.writeValueWithResponse(d); }
+    dlog(`✓ [${label}] Wysłano OK`, true);
+    return true;
+  }catch(e){
+    dlog(`✗ [${label}] Błąd: ${e.message}`, false);
+    return false;
+  }
+}
+
+async function dbgSend(onoff, proto){
+  const on = onoff==='on';
+  if(proto==='A') await dbgWr(on?[0xfb,0xeb,0x04,0x01,0x00,0x00]:[0xfb,0xeb,0x04,0x00,0x00,0x00], 'ON/OFF-A');
+  if(proto==='B') await dbgWr(on?[0x7e,0x04,0x04,0x01,0x00,0x00,0x00,0x00,0xef]:[0x7e,0x04,0x04,0x00,0x00,0x00,0x00,0x00,0xef], 'ON/OFF-B');
+  if(proto==='C') await dbgWr(on?[0x55,0xf0,0x01,0x00,0x00,0x00,0x00,0x00]:[0x55,0xf0,0x00,0x00,0x00,0x00,0x00,0x00], 'ON/OFF-C');
+  if(proto==='D') await dbgWr(on?[0xcc,0x23,0x33]:[0xcc,0x24,0x33], 'ON/OFF-D');
+}
+
+async function dbgColor(proto){
+  // Always red FF 00 00 for easy visual confirmation
+  if(proto==='A') await dbgWr([0xfb,0xeb,0x05,0xff,0x00,0x00], 'RGB-A');
+  if(proto==='B') await dbgWr([0x7e,0x07,0x05,0x03,0xff,0x00,0x00,0x00,0xef], 'RGB-B');
+  if(proto==='C') await dbgWr([0x55,0x05,0xff,0x00,0x00,0x00,0x00,0x00], 'RGB-C');
+  if(proto==='D') await dbgWr([0xff,0x00,0x00], 'RGB-D(raw)');
+  if(proto==='E') await dbgWr([0x56,0xff,0x00,0x00,0xf0,0xaa], 'RGB-E(MagicHome)');
+  if(proto==='F') await dbgWr([0xb0,0xff,0x00,0x00], 'RGB-F');
+}
+
+async function dbgAnim(proto){
+  // Mode 0x25 = pulse — easy to see
+  if(proto==='A') await dbgWr([0xfb,0xeb,0x04,0x25,0x03,0xff], 'ANIM-A');
+  if(proto==='B') await dbgWr([0x7e,0x05,0x03,0x25,0x03,0x00,0x00,0x00,0xef], 'ANIM-B');
+  if(proto==='C') await dbgWr([0x55,0xf0,0x25,0x00,0x00,0x00,0x00,0x00], 'ANIM-C');
+  if(proto==='D') await dbgWr([0xbb,0x25,0x44], 'ANIM-D');
+  if(proto==='E') await dbgWr([0x38,0x25,0x03,0x00,0x00], 'ANIM-E');
+  if(proto==='F') await dbgWr([0x61,0x25,0x0f,0x90], 'ANIM-F');
+}
+
+function markProto(p){
+  const working = JSON.parse(localStorage.getItem('lp2_proto')||'[]');
+  if(!working.includes(p)) working.push(p);
+  localStorage.setItem('lp2_proto', JSON.stringify(working));
+  document.getElementById('protoResult').textContent = '✅ Działające protokoły: '+working.join(', ')+' — powiedz mi które, a skonfigruję aplikację!';
+  dlog('Zaznaczono protokół '+p+' jako działający', true);
+  toast('✅ Protokół '+p+' zapisany!');
+  // Highlight button
+  document.querySelectorAll('.dbtn.sm').forEach(btn=>{
+    if(btn.textContent.includes(p)) btn.classList.add('active');
+  });
+}
 </script>
 </body>
 </html>
